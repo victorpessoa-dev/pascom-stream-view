@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { 
-  Layers, 
-  Megaphone, 
-  Plus, 
+import {
+  Layers,
+  Megaphone,
+  Plus,
   ArrowRight,
   Activity,
   Clock,
@@ -128,7 +128,7 @@ export default function DashboardContent() {
           <QuickActionCard
             title="Gerenciar Overlays"
             description="Crie e edite seus overlays para transmissoes"
-            href="/overlays"
+            href="/overlay"
             icon={Layers}
             color="bg-primary"
           />
