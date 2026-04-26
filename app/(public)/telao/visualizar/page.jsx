@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { createSupabaseBrowserClient } from '@/services/supabase/browser'
 
 const STORAGE_KEY = 'streamoverlay_data'
 
@@ -10,6 +11,7 @@ export default function TelaoPage() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [progress, setProgress] = useState(0)
+  const sessionIdRef = useRef(null)
 
   const loadAds = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -58,6 +60,50 @@ export default function TelaoPage() {
       window.removeEventListener('storage', loadAds)
     }
   }, [loadAds])
+
+  // Public session metrics (optional, if Supabase env is set)
+  useEffect(() => {
+    if (!isLoaded) return
+    if (sessionIdRef.current) return
+
+    let mounted = true
+    const startedAt = Date.now()
+
+    ;(async () => {
+      try {
+        const supabase = createSupabaseBrowserClient()
+        const { data, error } = await supabase
+          .from('telao_sessions')
+          .insert({
+            started_at: new Date(startedAt).toISOString(),
+            ads_snapshot: ads.map((a) => ({ id: a.id, name: a.name, type: a.type, duration: a.duration })),
+          })
+          .select('id')
+          .single()
+
+        if (error) throw error
+        if (mounted) sessionIdRef.current = data?.id ?? null
+      } catch {
+        // ignore: metrics are optional
+      }
+    })()
+
+    return () => {
+      mounted = false
+      ;(async () => {
+        try {
+          if (!sessionIdRef.current) return
+          const supabase = createSupabaseBrowserClient()
+          await supabase
+            .from('telao_sessions')
+            .update({ ended_at: new Date().toISOString() })
+            .eq('id', sessionIdRef.current)
+        } catch {
+          // ignore
+        }
+      })()
+    }
+  }, [isLoaded, ads])
 
   // Auto-rotate ads with smooth transitions
   useEffect(() => {
