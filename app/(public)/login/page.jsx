@@ -11,7 +11,10 @@ import { Label } from '@/components/ui/label'
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirectTo') || '/'
+  const redirectToParam = searchParams.get('redirectTo')
+  const redirectTo = redirectToParam && redirectToParam.startsWith('/') && !redirectToParam.startsWith('//')
+    ? redirectToParam
+    : '/'
 
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
@@ -29,6 +32,7 @@ function LoginForm() {
         email,
         password,
       })
+
       if (signInError) throw signInError
 
       router.replace(redirectTo)
@@ -95,4 +99,3 @@ export default function LoginPage() {
     </React.Suspense>
   )
 }
-

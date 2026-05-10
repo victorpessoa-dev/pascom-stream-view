@@ -1,23 +1,21 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-const PROTECTED_PREFIXES = ['/', '/overlays', '/telao', '/configuracoes', '/editor', '/overlay']
-const PUBLIC_PATHS = ['/login', '/dashboard', '/telao/visualizar']
+const ADMIN_PATHS = ['/', '/configuracoes', '/editor', '/overlay', '/painel-telao']
+const PUBLIC_PATHS = ['/anunciantes', '/dashboard', '/login', '/shared', '/telao', '/telao-master', '/telao/visualizar']
 
 function isPublicPath(pathname) {
-  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'))) return true
-  return false
+  return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
 }
 
 function isProtectedPath(pathname) {
   if (isPublicPath(pathname)) return false
-  // Protect everything under app except static/next internals.
   if (pathname.startsWith('/_next') || pathname.startsWith('/favicon') || pathname.startsWith('/api')) return false
-  return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'))
+  return ADMIN_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
 }
 
-export async function middleware(request) {
-  const { pathname } = request.nextUrl
+export async function proxy(request) {
+  const { pathname, search } = request.nextUrl
 
   if (!isProtectedPath(pathname)) {
     return NextResponse.next()
@@ -30,7 +28,7 @@ export async function middleware(request) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('error', 'missing_supabase_env')
-    url.searchParams.set('redirectTo', pathname)
+    url.searchParams.set('redirectTo', `${pathname}${search}`)
     return NextResponse.redirect(url)
   }
 
@@ -53,11 +51,12 @@ export async function middleware(request) {
     },
   })
 
-  const { data } = await supabase.auth.getUser()
-  if (!data.user) {
+  const { data, error } = await supabase.auth.getUser()
+
+  if (error || !data.user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    url.searchParams.set('redirectTo', pathname)
+    url.searchParams.set('redirectTo', `${pathname}${search}`)
     return NextResponse.redirect(url)
   }
 
@@ -67,4 +66,3 @@ export async function middleware(request) {
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
-

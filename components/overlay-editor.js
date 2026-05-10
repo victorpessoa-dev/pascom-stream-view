@@ -5,16 +5,24 @@ import { useStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { 
   ArrowLeft, 
   Plus, 
@@ -24,6 +32,7 @@ import {
   Eye, 
   EyeOff, 
   Copy,
+  CopyPlus,
   Layers,
   Move,
   Settings,
@@ -34,16 +43,18 @@ import {
   ChevronUp,
   ChevronDown,
   RotateCcw,
-  Save,
   Palette,
-  Grid3X3
+  Grid3X3,
+  AlignCenterHorizontal,
+  AlignCenterVertical
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { uploadMedia } from '@/services/supabase/upload'
 
 export default function OverlayEditor({ overlayId }) {
-  const { getOverlay, updateOverlay, addElement, updateElement, deleteElement, isLoaded } = useStore()
+  const { getOverlay, addElement, updateElement, deleteElement, isLoaded } = useStore()
   const router = useRouter()
   const [overlay, setOverlay] = useState(null)
   const [selectedElementId, setSelectedElementId] = useState(null)
@@ -53,9 +64,19 @@ export default function OverlayEditor({ overlayId }) {
   const [showGrid, setShowGrid] = useState(true)
   const [addImageDialogOpen, setAddImageDialogOpen] = useState(false)
   const [addTextDialogOpen, setAddTextDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [elementPendingDelete, setElementPendingDelete] = useState(null)
   const [newImageUrl, setNewImageUrl] = useState('')
   const [newText, setNewText] = useState('')
+  const [newElementOptions, setNewElementOptions] = useState({
+    x: 0,
+    y: 0,
+    zoom: 100,
+    visible: true,
+  })
+  const [alignTargetId, setAlignTargetId] = useState('canvas')
   const canvasRef = useRef(null)
+  const dragPositionRef = useRef(null)
 
   useEffect(() => {
     if (isLoaded) {
@@ -63,7 +84,7 @@ export default function OverlayEditor({ overlayId }) {
       if (found) {
         setOverlay(found)
       } else {
-        toast.error('Overlay nao encontrado')
+        toast.error('Overlay não encontrado')
         router.push('/')
       }
     }
@@ -80,59 +101,139 @@ export default function OverlayEditor({ overlayId }) {
     return () => window.removeEventListener('streamoverlay_update', handleUpdate)
   }, [overlayId, getOverlay])
 
+  useEffect(() => {
+    if (!selectedElementId || !overlay) return
+    if (!overlay.elements.some((element) => element.id === selectedElementId)) {
+      setSelectedElementId(null)
+    }
+  }, [overlay, selectedElementId])
+
   const selectedElement = overlay?.elements.find(el => el.id === selectedElementId)
 
-  const handleAddImage = () => {
+  const getDefaultElementOptions = useCallback((defaults = {}) => ({
+    x: defaults.x ?? Math.round((overlay?.width || 1920) / 2 - 100),
+    y: defaults.y ?? Math.round((overlay?.height || 1080) / 2 - 100),
+    zoom: defaults.zoom ?? 100,
+    visible: defaults.visible ?? true,
+  }), [overlay?.height, overlay?.width])
+
+  const resetNewElementOptions = useCallback((defaults = {}) => {
+    setNewElementOptions(getDefaultElementOptions(defaults))
+  }, [getDefaultElementOptions])
+
+  const handleAddImage = async () => {
     if (!newImageUrl.trim()) {
-      toast.error('Digite uma URL valida')
+      toast.error('Digite uma URL válida')
       return
     }
-    const newEl = addElement(overlayId, {
-      type: 'image',
-      src: newImageUrl,
-      x: Math.round(overlay.width / 2 - 100),
-      y: Math.round(overlay.height / 2 - 100),
-      width: 200,
-      height: 200,
-    })
-    setSelectedElementId(newEl.id)
-    setNewImageUrl('')
-    setAddImageDialogOpen(false)
-    toast.success('Imagem adicionada')
+
+    try {
+      const newEl = await addElement(overlayId, {
+        type: 'image',
+        src: newImageUrl,
+        x: newElementOptions.x,
+        y: newElementOptions.y,
+        width: Math.round(200 * (newElementOptions.zoom / 100)),
+        height: Math.round(200 * (newElementOptions.zoom / 100)),
+        visible: newElementOptions.visible,
+      })
+      if (newEl) setSelectedElementId(newEl.id)
+      setNewImageUrl('')
+      resetNewElementOptions()
+      setAddImageDialogOpen(false)
+      toast.success('Imagem adicionada')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao adicionar imagem')
+    }
   }
 
-  const handleAddText = () => {
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      const url = await uploadMedia(file, 'overlays')
+      setNewImageUrl(url)
+      toast.success('Upload enviado')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao enviar imagem')
+    }
+  }
+
+  const handleAddText = async () => {
     if (!newText.trim()) {
       toast.error('Digite um texto')
       return
     }
-    const newEl = addElement(overlayId, {
-      type: 'text',
-      text: newText,
-      x: Math.round(overlay.width / 2 - 150),
-      y: Math.round(overlay.height / 2 - 25),
-      width: 300,
-      height: 50,
-      fontSize: 32,
-      fontColor: '#ffffff',
-    })
-    setSelectedElementId(newEl.id)
-    setNewText('')
-    setAddTextDialogOpen(false)
-    toast.success('Texto adicionado')
+
+    try {
+      const newEl = await addElement(overlayId, {
+        type: 'text',
+        text: newText,
+        x: newElementOptions.x,
+        y: newElementOptions.y,
+        width: Math.round(300 * (newElementOptions.zoom / 100)),
+        height: Math.round(50 * (newElementOptions.zoom / 100)),
+        fontSize: 32,
+        fontColor: '#ffffff',
+        visible: newElementOptions.visible,
+      })
+      if (newEl) setSelectedElementId(newEl.id)
+      setNewText('')
+      resetNewElementOptions({
+        x: Math.round((overlay.width || 1920) / 2 - 150),
+        y: Math.round((overlay.height || 1080) / 2 - 25),
+      })
+      setAddTextDialogOpen(false)
+      toast.success('Texto adicionado')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao adicionar texto')
+    }
   }
 
-  const handleDeleteElement = (elementId) => {
-    deleteElement(overlayId, elementId)
+  const handleDeleteElement = async (elementId) => {
+    try {
+      await deleteElement(overlayId, elementId)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao excluir elemento')
+      return
+    }
     if (selectedElementId === elementId) {
       setSelectedElementId(null)
     }
-    toast.success('Elemento excluido')
+    toast.success('Elemento excluído')
+  }
+
+  const requestDeleteElement = (elementId) => {
+    setElementPendingDelete(elementId)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDuplicateElement = async () => {
+    if (!selectedElement) return
+    try {
+      const newEl = await addElement(overlayId, {
+        ...selectedElement,
+        x: selectedElement.x + 24,
+        y: selectedElement.y + 24,
+        zIndex: selectedElement.zIndex + 1,
+      })
+      if (newEl) setSelectedElementId(newEl.id)
+      toast.success('Elemento duplicado')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao duplicar elemento')
+    }
   }
 
   const handleElementUpdate = (field, value) => {
     if (selectedElementId) {
       updateElement(overlayId, selectedElementId, { [field]: value })
+    }
+  }
+
+  const handleElementBatchUpdate = (updates) => {
+    if (selectedElementId) {
+      updateElement(overlayId, selectedElementId, updates)
     }
   }
 
@@ -149,15 +250,65 @@ export default function OverlayEditor({ overlayId }) {
         x: Math.round(overlay.width / 2 - selectedElement.width / 2),
         y: Math.round(overlay.height / 2 - selectedElement.height / 2)
       })
-      toast.success('Posicao resetada')
+      toast.success('Posição resetada')
     }
   }
 
-  const copyOverlayUrl = () => {
-    const url = `${window.location.origin}/overlay/${overlayId}`
-    navigator.clipboard.writeText(url)
-    toast.success('URL copiada para a area de transferencia')
+  const handleAlign = (axis) => {
+    if (!selectedElement) return
+
+    const target = alignTargetId === 'canvas'
+      ? { x: 0, y: 0, width: overlay.width, height: overlay.height }
+      : overlay.elements.find((element) => element.id === alignTargetId)
+
+    if (!target) return
+
+    const updates = axis === 'horizontal'
+      ? { x: Math.round(target.x + target.width / 2 - selectedElement.width / 2) }
+      : { y: Math.round(target.y + target.height / 2 - selectedElement.height / 2) }
+
+    updateElement(overlayId, selectedElement.id, updates)
   }
+
+  const copyOverlayUrl = () => {
+    const url = `${window.location.origin}/shared/${overlay.publicId || overlayId}`
+    navigator.clipboard.writeText(url)
+    toast.success('URL copiada para a área de transferência')
+  }
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (!selectedElementId || event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
+
+      const step = event.shiftKey ? 10 : 1
+      const selected = overlay?.elements.find((element) => element.id === selectedElementId)
+      if (!selected) return
+
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        event.preventDefault()
+        requestDeleteElement(selectedElementId)
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault()
+        updateElement(overlayId, selectedElementId, { x: selected.x - step })
+      }
+      if (event.key === 'ArrowRight') {
+        event.preventDefault()
+        updateElement(overlayId, selectedElementId, { x: selected.x + step })
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        updateElement(overlayId, selectedElementId, { y: selected.y - step })
+      }
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        updateElement(overlayId, selectedElementId, { y: selected.y + step })
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleDeleteElement, overlay?.elements, overlayId, selectedElementId, updateElement])
 
   const handleMouseDown = useCallback((e, elementId) => {
     e.stopPropagation()
@@ -178,13 +329,26 @@ export default function OverlayEditor({ overlayId }) {
       const canvasRect = canvasRef.current.getBoundingClientRect()
       const newX = Math.round((e.clientX - canvasRect.left - dragOffset.x * zoom) / zoom)
       const newY = Math.round((e.clientY - canvasRect.top - dragOffset.y * zoom) / zoom)
-      updateElement(overlayId, selectedElementId, { x: newX, y: newY })
+      dragPositionRef.current = { x: newX, y: newY }
+      setOverlay((current) => {
+        if (!current) return current
+        return {
+          ...current,
+          elements: current.elements.map((element) =>
+            element.id === selectedElementId ? { ...element, x: newX, y: newY } : element
+          ),
+        }
+      })
     }
-  }, [isDragging, selectedElementId, dragOffset, zoom, overlayId, updateElement])
+  }, [isDragging, selectedElementId, dragOffset, zoom])
 
   const handleMouseUp = useCallback(() => {
+    if (selectedElementId && dragPositionRef.current) {
+      updateElement(overlayId, selectedElementId, dragPositionRef.current)
+      dragPositionRef.current = null
+    }
     setIsDragging(false)
-  }, [])
+  }, [overlayId, selectedElementId, updateElement])
 
   useEffect(() => {
     if (isDragging) {
@@ -213,19 +377,30 @@ export default function OverlayEditor({ overlayId }) {
       {/* Toolbar */}
       <header className="h-14 border-b border-border bg-card flex items-center px-4 gap-4 sticky top-0 z-50">
         <Button variant="ghost" size="icon" asChild>
-          <Link href="/overlays">
+          <Link href="/overlay">
             <ArrowLeft className="w-5 h-5" />
           </Link>
         </Button>
         <Separator orientation="vertical" className="h-8" />
         <div className="flex-1">
           <h1 className="font-semibold text-foreground">{overlay.name}</h1>
-          <p className="text-xs text-muted-foreground">{overlay.width}x{overlay.height} - {overlay.elements.length} elemento(s)</p>
+              <p className="text-xs text-muted-foreground">{overlay.width}x{overlay.height} - {overlay.elements.length} elemento(s)</p>
         </div>
         
         <div className="flex items-center gap-2">
           {/* Add Element Dialogs */}
-          <Dialog open={addImageDialogOpen} onOpenChange={setAddImageDialogOpen}>
+          <Dialog
+            open={addImageDialogOpen}
+            onOpenChange={(open) => {
+              setAddImageDialogOpen(open)
+              if (open) {
+                resetNewElementOptions({
+                  x: Math.round((overlay.width || 1920) / 2 - 100),
+                  y: Math.round((overlay.height || 1080) / 2 - 100),
+                })
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
                 <ImageIcon className="w-4 h-4 mr-2" />
@@ -241,12 +416,51 @@ export default function OverlayEditor({ overlayId }) {
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label>URL da Imagem</Label>
+                    <Label>URL da imagem</Label>
                   <Input
                     placeholder="https://exemplo.com/imagem.png"
                     value={newImageUrl}
                     onChange={(e) => setNewImageUrl(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddImage()}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Upload da imagem</Label>
+                  <Input type="file" accept="image/*" onChange={handleImageUpload} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Posição X</Label>
+                    <Input
+                      type="number"
+                      value={newElementOptions.x}
+                      onChange={(e) => setNewElementOptions((prev) => ({ ...prev, x: parseInt(e.target.value, 10) || 0 }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Posição Y</Label>
+                    <Input
+                      type="number"
+                      value={newElementOptions.y}
+                      onChange={(e) => setNewElementOptions((prev) => ({ ...prev, y: parseInt(e.target.value, 10) || 0 }))}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Zoom inicial ({newElementOptions.zoom}%)</Label>
+                  <Slider
+                    value={[newElementOptions.zoom]}
+                    onValueChange={([value]) => setNewElementOptions((prev) => ({ ...prev, zoom: value }))}
+                    min={10}
+                    max={300}
+                    step={5}
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                  <Label>Visível ao criar</Label>
+                  <Switch
+                    checked={newElementOptions.visible}
+                    onCheckedChange={(checked) => setNewElementOptions((prev) => ({ ...prev, visible: checked }))}
                   />
                 </div>
                 {newImageUrl && (
@@ -267,7 +481,18 @@ export default function OverlayEditor({ overlayId }) {
             </DialogContent>
           </Dialog>
 
-          <Dialog open={addTextDialogOpen} onOpenChange={setAddTextDialogOpen}>
+          <Dialog
+            open={addTextDialogOpen}
+            onOpenChange={(open) => {
+              setAddTextDialogOpen(open)
+              if (open) {
+                resetNewElementOptions({
+                  x: Math.round((overlay.width || 1920) / 2 - 150),
+                  y: Math.round((overlay.height || 1080) / 2 - 25),
+                })
+              }
+            }}
+          >
             <DialogTrigger asChild>
               <Button variant="outline" size="sm">
                 <Type className="w-4 h-4 mr-2" />
@@ -291,6 +516,41 @@ export default function OverlayEditor({ overlayId }) {
                     className="min-h-24"
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Posição X</Label>
+                    <Input
+                      type="number"
+                      value={newElementOptions.x}
+                      onChange={(e) => setNewElementOptions((prev) => ({ ...prev, x: parseInt(e.target.value, 10) || 0 }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Posição Y</Label>
+                    <Input
+                      type="number"
+                      value={newElementOptions.y}
+                      onChange={(e) => setNewElementOptions((prev) => ({ ...prev, y: parseInt(e.target.value, 10) || 0 }))}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Zoom inicial ({newElementOptions.zoom}%)</Label>
+                  <Slider
+                    value={[newElementOptions.zoom]}
+                    onValueChange={([value]) => setNewElementOptions((prev) => ({ ...prev, zoom: value }))}
+                    min={10}
+                    max={300}
+                    step={5}
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+                  <Label>Visível ao criar</Label>
+                  <Switch
+                    checked={newElementOptions.visible}
+                    onCheckedChange={(checked) => setNewElementOptions((prev) => ({ ...prev, visible: checked }))}
+                  />
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setAddTextDialogOpen(false)}>Cancelar</Button>
@@ -306,7 +566,7 @@ export default function OverlayEditor({ overlayId }) {
             Copiar URL
           </Button>
           <Button variant="default" size="sm" asChild>
-            <Link href={`/overlay/${overlayId}`} target="_blank">
+            <Link href={`/shared/${overlay.publicId || overlayId}`} target="_blank">
               <ExternalLink className="w-4 h-4 mr-2" />
               Visualizar
             </Link>
@@ -314,11 +574,11 @@ export default function OverlayEditor({ overlayId }) {
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden xl:flex-row">
         {/* Canvas Area */}
-        <div className="flex-1 bg-muted/20 overflow-auto p-6">
+        <div className="flex-1 overflow-auto bg-muted/20 p-3 sm:p-4 lg:p-6">
           {/* Zoom Controls */}
-          <div className="mb-4 flex items-center gap-3 bg-card p-2 rounded-lg border border-border inline-flex">
+          <div className="mb-4 inline-flex flex-wrap items-center gap-3 rounded-lg border border-border bg-card p-2">
             <Button 
               variant="ghost" 
               size="icon" 
@@ -401,6 +661,10 @@ export default function OverlayEditor({ overlayId }) {
                   zIndex: element.zIndex,
                 }}
                 onMouseDown={(e) => handleMouseDown(e, element.id)}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setSelectedElementId(element.id)
+                }}
               >
                 {element.type === 'image' && element.src && (
                   <img 
@@ -450,7 +714,7 @@ export default function OverlayEditor({ overlayId }) {
         </div>
 
         {/* Sidebar */}
-        <aside className="w-80 border-l border-border bg-card flex flex-col">
+        <aside className="flex w-full flex-col border-t border-border bg-card xl:w-80 xl:border-l xl:border-t-0">
           <Tabs defaultValue="elements" className="flex-1 flex flex-col">
             <TabsList className="mx-4 mt-4 bg-muted">
               <TabsTrigger value="elements" className="flex-1">
@@ -548,7 +812,7 @@ export default function OverlayEditor({ overlayId }) {
                             className="h-7 w-7 rounded-lg text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={(e) => {
                               e.stopPropagation()
-                              handleDeleteElement(element.id)
+                              requestDeleteElement(element.id)
                             }}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -566,10 +830,24 @@ export default function OverlayEditor({ overlayId }) {
               {selectedElement ? (
                 <div className="space-y-6">
                   {/* Transform */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button variant="outline" size="sm" onClick={handleDuplicateElement}>
+                      <CopyPlus className="w-4 h-4 mr-2" />
+                      Duplicar
+                    </Button>
+                    <Button variant="outline" size="sm" className="text-destructive" onClick={() => requestDeleteElement(selectedElement.id)}>
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Excluir
+                    </Button>
+                  </div>
+
+                  <Separator />
+
+                  {/* Transform */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                        <Move className="w-3 h-3" /> Posicao e Tamanho
+                        <Move className="w-3 h-3" /> Posição e tamanho
                       </Label>
                       <Button 
                         variant="ghost" 
@@ -621,6 +899,64 @@ export default function OverlayEditor({ overlayId }) {
                     </div>
                   </div>
 
+                  <div className="space-y-3">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                      <ZoomIn className="w-3 h-3" /> Zoom do elemento
+                    </Label>
+                    <div className="space-y-2">
+                      <div className="text-xs text-muted-foreground">
+                        Ajusta largura e altura juntas com base no tamanho padrão do tipo de elemento.
+                      </div>
+                      <Slider
+                        value={[Math.max(10, Math.round((selectedElement.width / (selectedElement.type === 'text' ? 300 : 200)) * 100))]}
+                        onValueChange={([value]) => {
+                          const baseWidth = selectedElement.type === 'text' ? 300 : 200
+                          const baseHeight = selectedElement.type === 'text' ? 50 : 200
+                          handleElementBatchUpdate({
+                            width: Math.round(baseWidth * (value / 100)),
+                            height: Math.round(baseHeight * (value / 100)),
+                          })
+                        }}
+                        min={10}
+                        max={300}
+                        step={5}
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                      Alinhamento
+                    </Label>
+                    <Select value={alignTargetId} onValueChange={setAlignTargetId}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="canvas">Tela inteira</SelectItem>
+                        {overlay.elements
+                          .filter((element) => element.id !== selectedElement.id)
+                          .map((element) => (
+                            <SelectItem key={element.id} value={element.id}>
+                              {element.type === 'text' ? element.text || 'Texto' : 'Imagem'} ({element.x}, {element.y})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" size="sm" onClick={() => handleAlign('horizontal')}>
+                        <AlignCenterHorizontal className="w-4 h-4 mr-2" />
+                        Horizontal
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleAlign('vertical')}>
+                        <AlignCenterVertical className="w-4 h-4 mr-2" />
+                        Vertical
+                      </Button>
+                    </div>
+                  </div>
+
                   <Separator />
 
                   {/* Layer */}
@@ -658,7 +994,7 @@ export default function OverlayEditor({ overlayId }) {
 
                   {/* Visibility */}
                   <div className="flex items-center justify-between py-2">
-                    <Label className="text-sm">Visivel</Label>
+                    <Label className="text-sm">Visível</Label>
                     <Switch
                       checked={selectedElement.visible}
                       onCheckedChange={(checked) => handleElementUpdate('visible', checked)}
@@ -783,6 +1119,31 @@ export default function OverlayEditor({ overlayId }) {
           </Tabs>
         </aside>
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir elemento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esse elemento será removido do overlay imediatamente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setElementPendingDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (elementPendingDelete) {
+                  handleDeleteElement(elementPendingDelete)
+                }
+                setElementPendingDelete(null)
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
