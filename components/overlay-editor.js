@@ -52,6 +52,127 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { uploadMedia } from '@/services/supabase/upload'
+import StaticMediaFrame from '@/components/static-media-frame'
+
+const SNAP_SCREEN_THRESHOLD = 8
+
+function createCanvasBounds(width, height) {
+  return { x: 0, y: 0, width, height }
+}
+
+function getBounds(element, x = element.x, y = element.y) {
+  return {
+    left: x,
+    centerX: x + element.width / 2,
+    right: x + element.width,
+    top: y,
+    centerY: y + element.height / 2,
+    bottom: y + element.height,
+    width: element.width,
+    height: element.height,
+  }
+}
+
+function buildGuide(orientation, position, start, end) {
+  return {
+    orientation,
+    position,
+    start: Math.min(start, end),
+    end: Math.max(start, end),
+  }
+}
+
+function resolveSnapPosition({ overlay, movingElement, elements, nextX, nextY, zoom }) {
+  const movingBounds = getBounds(movingElement, nextX, nextY)
+  const snapThreshold = SNAP_SCREEN_THRESHOLD / Math.max(zoom || 1, 0.1)
+  const comparisons = [
+    { id: 'canvas', bounds: getBounds(createCanvasBounds(overlay.width, overlay.height)) },
+    ...elements
+      .filter((element) => element.id !== movingElement.id && element.visible !== false)
+      .map((element) => ({ id: element.id, bounds: getBounds(element) })),
+  ]
+
+  const matches = {
+    x: null,
+    y: null,
+  }
+
+  const xPairs = [
+    ['left', 'left'],
+    ['centerX', 'centerX'],
+    ['right', 'right'],
+  ]
+  const yPairs = [
+    ['top', 'top'],
+    ['centerY', 'centerY'],
+    ['bottom', 'bottom'],
+  ]
+
+  for (const comparison of comparisons) {
+    for (const [movingKey, targetKey] of xPairs) {
+      const delta = comparison.bounds[targetKey] - movingBounds[movingKey]
+      if (Math.abs(delta) > snapThreshold) continue
+      if (!matches.x || Math.abs(delta) < Math.abs(matches.x.delta)) {
+        matches.x = {
+          delta,
+          target: comparison,
+          movingKey,
+          targetKey,
+        }
+      }
+    }
+
+    for (const [movingKey, targetKey] of yPairs) {
+      const delta = comparison.bounds[targetKey] - movingBounds[movingKey]
+      if (Math.abs(delta) > snapThreshold) continue
+      if (!matches.y || Math.abs(delta) < Math.abs(matches.y.delta)) {
+        matches.y = {
+          delta,
+          target: comparison,
+          movingKey,
+          targetKey,
+        }
+      }
+    }
+  }
+
+  const snappedX = matches.x ? Math.round(nextX + matches.x.delta) : nextX
+  const snappedY = matches.y ? Math.round(nextY + matches.y.delta) : nextY
+  const snappedBounds = getBounds(movingElement, snappedX, snappedY)
+  const guides = []
+
+  if (matches.x) {
+    const targetBounds = matches.x.target.bounds
+    const position = targetBounds[matches.x.targetKey]
+    const verticalStart = matches.x.target.id === 'canvas'
+      ? 0
+      : Math.min(targetBounds.top, snappedBounds.top)
+    const verticalEnd = matches.x.target.id === 'canvas'
+      ? overlay.height
+      : Math.max(targetBounds.bottom, snappedBounds.bottom)
+
+    guides.push(buildGuide('vertical', position, verticalStart, verticalEnd))
+  }
+
+  if (matches.y) {
+    const targetBounds = matches.y.target.bounds
+    const position = targetBounds[matches.y.targetKey]
+    const horizontalStart = matches.y.target.id === 'canvas'
+      ? 0
+      : Math.min(targetBounds.left, snappedBounds.left)
+    const horizontalEnd = matches.y.target.id === 'canvas'
+      ? overlay.width
+      : Math.max(targetBounds.right, snappedBounds.right)
+
+    guides.push(buildGuide('horizontal', position, horizontalStart, horizontalEnd))
+  }
+
+  return {
+    x: snappedX,
+    y: snappedY,
+    guides,
+  }
+}
 
 export default function OverlayEditor({ overlayId }) {
   const { getOverlay, addElement, updateElement, deleteElement, isLoaded } = useStore()
@@ -61,6 +182,7 @@ export default function OverlayEditor({ overlayId }) {
   const [zoom, setZoom] = useState(0.5)
   const [isDragging, setIsDragging] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
+  const [alignmentGuides, setAlignmentGuides] = useState([])
   const [showGrid, setShowGrid] = useState(true)
   const [addImageDialogOpen, setAddImageDialogOpen] = useState(false)
   const [addTextDialogOpen, setAddTextDialogOpen] = useState(false)
@@ -313,6 +435,7 @@ export default function OverlayEditor({ overlayId }) {
   const handleMouseDown = useCallback((e, elementId) => {
     e.stopPropagation()
     setSelectedElementId(elementId)
+    setAlignmentGuides([])
     const element = overlay?.elements.find(el => el.id === elementId)
     if (element) {
       const rect = e.currentTarget.getBoundingClientRect()
@@ -327,26 +450,40 @@ export default function OverlayEditor({ overlayId }) {
   const handleMouseMove = useCallback((e) => {
     if (isDragging && selectedElementId && canvasRef.current) {
       const canvasRect = canvasRef.current.getBoundingClientRect()
-      const newX = Math.round((e.clientX - canvasRect.left - dragOffset.x * zoom) / zoom)
-      const newY = Math.round((e.clientY - canvasRect.top - dragOffset.y * zoom) / zoom)
-      dragPositionRef.current = { x: newX, y: newY }
+      const rawX = Math.round((e.clientX - canvasRect.left - dragOffset.x * zoom) / zoom)
+      const rawY = Math.round((e.clientY - canvasRect.top - dragOffset.y * zoom) / zoom)
+      const movingElement = overlay?.elements.find((element) => element.id === selectedElementId)
+      const result = movingElement && overlay
+        ? resolveSnapPosition({
+          overlay,
+          movingElement,
+          elements: overlay.elements,
+          nextX: rawX,
+          nextY: rawY,
+          zoom,
+        })
+        : { x: rawX, y: rawY, guides: [] }
+
+      dragPositionRef.current = { x: result.x, y: result.y }
+      setAlignmentGuides(result.guides)
       setOverlay((current) => {
         if (!current) return current
         return {
           ...current,
           elements: current.elements.map((element) =>
-            element.id === selectedElementId ? { ...element, x: newX, y: newY } : element
+            element.id === selectedElementId ? { ...element, x: result.x, y: result.y } : element
           ),
         }
       })
     }
-  }, [isDragging, selectedElementId, dragOffset, zoom])
+  }, [dragOffset, isDragging, overlay, selectedElementId, zoom])
 
   const handleMouseUp = useCallback(() => {
     if (selectedElementId && dragPositionRef.current) {
       updateElement(overlayId, selectedElementId, dragPositionRef.current)
       dragPositionRef.current = null
     }
+    setAlignmentGuides([])
     setIsDragging(false)
   }, [overlayId, selectedElementId, updateElement])
 
@@ -465,11 +602,13 @@ export default function OverlayEditor({ overlayId }) {
                 </div>
                 {newImageUrl && (
                   <div className="aspect-video bg-muted rounded-lg overflow-hidden border">
-                    <img 
-                      src={newImageUrl} 
-                      alt="Preview" 
+                    <StaticMediaFrame
+                      src={newImageUrl}
+                      alt="Preview"
                       className="w-full h-full object-contain"
-                      onError={(e) => e.target.style.opacity = 0.3}
+                      onError={(e) => {
+                        e.currentTarget.style.opacity = 0.3
+                      }}
                     />
                   </div>
                 )}
@@ -631,7 +770,10 @@ export default function OverlayEditor({ overlayId }) {
               width: overlay.width * zoom, 
               height: overlay.height * zoom,
             }}
-            onClick={() => setSelectedElementId(null)}
+            onClick={() => {
+              setSelectedElementId(null)
+              setAlignmentGuides([])
+            }}
           >
             {/* Grid pattern */}
             {showGrid && (
@@ -643,6 +785,26 @@ export default function OverlayEditor({ overlayId }) {
                 }}
               />
             )}
+
+            {alignmentGuides.map((guide, index) => (
+              <div
+                key={`${guide.orientation}-${guide.position}-${index}`}
+                className="absolute pointer-events-none z-[999] bg-cyan-400/90 shadow-[0_0_0_1px_rgba(34,211,238,0.28)]"
+                style={guide.orientation === 'vertical'
+                  ? {
+                    left: guide.position * zoom,
+                    top: guide.start * zoom,
+                    width: 1,
+                    height: Math.max(1, (guide.end - guide.start) * zoom),
+                  }
+                  : {
+                    left: guide.start * zoom,
+                    top: guide.position * zoom,
+                    width: Math.max(1, (guide.end - guide.start) * zoom),
+                    height: 1,
+                  }}
+              />
+            ))}
             
             {/* Elements */}
             {overlay.elements.map((element) => (
@@ -667,8 +829,8 @@ export default function OverlayEditor({ overlayId }) {
                 }}
               >
                 {element.type === 'image' && element.src && (
-                  <img 
-                    src={element.src} 
+                  <StaticMediaFrame
+                    src={element.src}
                     alt=""
                     className="w-full h-full object-contain pointer-events-none"
                     draggable={false}
@@ -1017,9 +1179,9 @@ export default function OverlayEditor({ overlayId }) {
                       />
                       {selectedElement.src && (
                         <div className="aspect-video bg-muted rounded-lg overflow-hidden border">
-                          <img 
-                            src={selectedElement.src} 
-                            alt="Preview" 
+                          <StaticMediaFrame
+                            src={selectedElement.src}
+                            alt="Preview"
                             className="w-full h-full object-contain"
                           />
                         </div>

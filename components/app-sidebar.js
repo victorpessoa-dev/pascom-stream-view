@@ -37,7 +37,9 @@ const publicLinks = [
 export default function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const pathname = usePathname()
-  const { overlays, ads, isLoaded } = useStore()
+  const { overlays, ads, isLoaded, adminSettings } = useStore()
+  const parishName = adminSettings?.appearance?.parishName?.trim()
+  const parishLogoUrl = adminSettings?.appearance?.parishLogoUrl?.trim()
 
   async function onLogout() {
     try {
@@ -57,13 +59,20 @@ export default function AppSidebar() {
         )}
       >
         <div className={cn('flex h-16 items-center border-b border-sidebar-border px-4', collapsed ? 'justify-center' : 'gap-3')}>
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-            <Monitor className="h-5 w-5 text-primary-foreground" />
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-primary">
+            {parishLogoUrl ? (
+              <img src={parishLogoUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <Monitor className="h-5 w-5 text-primary-foreground" />
+            )}
           </div>
           {!collapsed && (
             <div className="flex flex-col">
-              <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">PASCOM</span>
-              <span className="text-[11px] font-medium uppercase tracking-wide text-sidebar-muted">Stream View</span>
+              <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">PASCOM <span className="text-[11px] font-medium uppercase tracking-wide text-sidebar-muted">Stream View</span></span>
+
+              {parishName ? (
+                <span className="mt-1 text-[11px] font-medium text-sidebar-foreground/70">{parishName}</span>
+              ) : null}
             </div>
           )}
         </div>

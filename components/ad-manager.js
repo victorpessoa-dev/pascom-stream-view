@@ -33,6 +33,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import PaginationControls from '@/components/pagination-controls'
+import StaticMediaFrame from '@/components/static-media-frame'
 
 const ADMIN_PAGE_SIZE = 10
 
@@ -72,10 +73,13 @@ function MediaPreview({ ad, compact = false }) {
   }
 
   if (ad.mediaType === 'video') {
-    return <video src={ad.src} className={`${sizeClass} rounded-lg bg-black object-contain`} muted playsInline />
+    return <StaticMediaFrame src={ad.src} type="video" className={`${sizeClass} rounded-lg bg-black object-contain`} />
   }
 
-  // eslint-disable-next-line @next/next/no-img-element
+  if (ad.mediaType === 'image') {
+    return <StaticMediaFrame src={ad.src} alt={ad.name || 'Patrocínio'} className={`${sizeClass} rounded-lg bg-black object-contain`} />
+  }
+
   return <img src={ad.src} alt={ad.name || 'Patrocínio'} className={`${sizeClass} rounded-lg bg-black object-contain`} />
 }
 

@@ -27,6 +27,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import PaginationControls from '@/components/pagination-controls'
+import StaticMediaFrame from '@/components/static-media-frame'
 
 const OVERLAY_PAGE_SIZE = 10
 
@@ -75,8 +76,7 @@ function OverlayPreview({ overlay, compact = false }) {
               }}
             >
               {element.type === 'image' && element.src ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={element.src} alt="" className="h-full w-full object-contain" />
+                <StaticMediaFrame src={element.src} alt="" className="h-full w-full object-contain" />
               ) : null}
               {element.type === 'text' ? (
                 <div

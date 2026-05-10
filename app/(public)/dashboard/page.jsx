@@ -29,11 +29,13 @@ function Media({ ad, className = '' }) {
 }
 
 export default function PublicDashboardPage() {
-  const { ads, isLoaded } = useStore()
+  const { ads, isLoaded, adminSettings } = useStore()
   const [slideIndex, setSlideIndex] = useState(0)
   const [advertisers, setAdvertisers] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const parishName = adminSettings?.appearance?.parishName?.trim()
+  const parishLogoUrl = adminSettings?.appearance?.parishLogoUrl?.trim()
 
   const activeSponsors = useMemo(
     () =>
@@ -132,6 +134,20 @@ export default function PublicDashboardPage() {
       <div className="mx-auto max-w-6xl space-y-8 p-6 sm:p-10">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div>
+            {(parishName || parishLogoUrl) ? (
+              <div className="mb-4 inline-flex items-center gap-3 rounded-full border border-border bg-card px-4 py-2">
+                <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-muted">
+                  {parishLogoUrl ? (
+                    <img src={parishLogoUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <Megaphone className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">{parishName || 'PASCOM'}</div>
+                </div>
+              </div>
+            ) : null}
             <h1 className="text-2xl font-bold tracking-tight">Dashboard público</h1>
             <p className="mt-1 text-muted-foreground">Preview do telão com busca e transparência dos patrocinadores logo abaixo.</p>
           </div>

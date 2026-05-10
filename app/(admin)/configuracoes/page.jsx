@@ -60,6 +60,8 @@ const defaultSettings = {
     accentColor: 'blue',
     animationsEnabled: true,
     compactMode: false,
+    parishName: '',
+    parishLogoUrl: '',
   },
   advanced: {
     autoSave: true,
@@ -266,6 +268,7 @@ export default function ConfiguracoesPage() {
       const { error } = await supabase.from('app_settings').upsert({ key: 'admin_settings', value: settings }, { onConflict: 'key' })
       if (error) throw error
       setHasChanges(false)
+      await reload()
       toast.success('Configurações salvas com sucesso')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao salvar configurações')
@@ -281,6 +284,7 @@ export default function ConfiguracoesPage() {
       const { error } = await supabase.from('app_settings').upsert({ key: 'admin_settings', value: defaultSettings }, { onConflict: 'key' })
       if (error) throw error
       setHasChanges(false)
+      await reload()
       toast.success('Configurações restauradas')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao restaurar configurações')
@@ -315,6 +319,7 @@ export default function ConfiguracoesPage() {
         const { error } = await supabase.from('app_settings').upsert({ key: 'admin_settings', value: normalizedSettings }, { onConflict: 'key' })
         if (error) throw error
         setHasChanges(false)
+        await reload()
         toast.success('Configurações importadas com sucesso')
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Arquivo inválido')
@@ -375,6 +380,17 @@ export default function ConfiguracoesPage() {
       toast.success('Imagem de fundo enviada')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao enviar a imagem de fundo')
+    }
+  }
+
+  const uploadParishLogo = async (file) => {
+    if (!file) return
+    try {
+      const url = await uploadMedia(file, 'branding')
+      updateSettings('appearance', 'parishLogoUrl', url)
+      toast.success('Logo enviada')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao enviar logo')
     }
   }
 
@@ -517,6 +533,62 @@ export default function ConfiguracoesPage() {
           </TabsContent>
 
           <TabsContent value="appearance" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Marca da paróquia</CardTitle>
+                <CardDescription>Define nome e logo exibidos no dashboard público e no sidebar administrativo.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label>Nome da paróquia</Label>
+                      <Input
+                        value={settings.appearance.parishName}
+                        onChange={(e) => updateSettings('appearance', 'parishName', e.target.value)}
+                        placeholder="Ex: Paróquia São José"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Logo da paróquia</Label>
+                      <Input
+                        value={settings.appearance.parishLogoUrl}
+                        onChange={(e) => updateSettings('appearance', 'parishLogoUrl', e.target.value)}
+                        placeholder="https://exemplo.com/logo.png"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Upload da logo</Label>
+                      <Input type="file" accept="image/*" onChange={(event) => uploadParishLogo(event.target.files?.[0])} />
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-border bg-card/50 p-4">
+                    <div className="text-sm font-medium">Prévia da marca</div>
+                    <div className="mt-4 rounded-xl border border-sidebar-border bg-sidebar p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-primary">
+                          {settings.appearance.parishLogoUrl ? (
+                            <img src={settings.appearance.parishLogoUrl} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <Monitor className="h-5 w-5 text-primary-foreground" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold tracking-tight text-sidebar-foreground">PASCOM</div>
+                          <div className="text-[11px] font-medium uppercase tracking-wide text-sidebar-muted">Stream View</div>
+                        </div>
+                      </div>
+                      <div className="mt-4 rounded-lg border border-sidebar-border/80 bg-sidebar-accent/30 px-3 py-2">
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-sidebar-muted">Paróquia</div>
+                        <div className="mt-1 text-sm font-medium text-sidebar-foreground">
+                          {settings.appearance.parishName || 'Nome da paróquia'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             <Card>
               <CardHeader>
                 <CardTitle>Aparência</CardTitle>
