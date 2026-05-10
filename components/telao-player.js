@@ -306,16 +306,8 @@ export default function TelaoPlayer({ kind = 'NORMAL', backgroundMode = 'auto' }
   const currentAd = useMemo(() => ads[currentIndex] || ads[0], [ads, currentIndex])
   const design = currentAd ? sponsorSettings?.designs?.[currentAd.type] : null
   const emptyMessage = useMemo(() => {
-    if (kind === 'MASTER') {
-      return {
-        title: 'Nenhum patrocinador master ativo',
-        description: 'Ative um patrocinador do tipo MASTER no painel do telão para exibir esta rota.',
-      }
-    }
-
     return {
       title: 'Nenhum patrocinador ativo',
-      description: 'Ative um patrocinador do tipo NORMAL no painel do telão para iniciar a exibição.',
     }
   }, [kind])
   const showBackground = useMemo(() => {
@@ -347,7 +339,6 @@ export default function TelaoPlayer({ kind = 'NORMAL', backgroundMode = 'auto' }
     <main className="fixed inset-0 overflow-hidden bg-black select-none" style={{ userSelect: 'none' }}>
       {showBackground ? (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={design.backgroundUrl}
             alt=""
