@@ -125,6 +125,11 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  html:has([data-overlay-transparent-root]),
+  body:has([data-overlay-transparent-root]) {
+    background: transparent !important;
+  }
 }
 
 /* Custom scrollbar */

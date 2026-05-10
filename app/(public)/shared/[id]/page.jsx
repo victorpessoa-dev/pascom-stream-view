@@ -7,7 +7,7 @@ function renderElement(element) {
   return (
     <div
       key={element.id}
-      className="absolute"
+      className="absolute bg-transparent"
       style={{
         left: element.x,
         top: element.y,
@@ -17,12 +17,17 @@ function renderElement(element) {
       }}
     >
       {element.type === 'image' && element.src && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={element.src} alt="" className="w-full h-full object-contain" draggable={false} />
+        <img
+          src={element.src}
+          alt=""
+          className="w-full h-full object-contain bg-transparent"
+          draggable={false}
+        />
       )}
+
       {element.type === 'text' && (
         <div
-          className="w-full h-full flex items-center justify-center text-center"
+          className="w-full h-full flex items-center justify-center text-center bg-transparent"
           style={{
             fontSize: element.fontSize,
             color: element.fontColor,
@@ -40,15 +45,22 @@ function renderElement(element) {
 
 export default function PublicOverlayPage({ params }) {
   const { id: publicId } = use(params)
+
   const [overlay, setOverlay] = useState(null)
   const [loaded, setLoaded] = useState(false)
-  const [loadError, setLoadError] = useState(null)
-  const [viewport, setViewport] = useState({ width: 0, height: 0 })
+  const [viewport, setViewport] = useState({ width: 1920, height: 1080 })
 
   useEffect(() => {
-    const updateViewport = () => setViewport({ width: window.innerWidth, height: window.innerHeight })
+    const updateViewport = () => {
+      setViewport({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      })
+    }
+
     updateViewport()
     window.addEventListener('resize', updateViewport)
+
     return () => window.removeEventListener('resize', updateViewport)
   }, [])
 
@@ -58,88 +70,85 @@ export default function PublicOverlayPage({ params }) {
 
     const loadOverlay = async () => {
       try {
-        const { data, error } = await supabase.rpc('get_public_overlay', { public_id_arg: publicId })
+        const { data, error } = await supabase.rpc('get_public_overlay', {
+          public_id_arg: publicId,
+        })
+
         if (error) throw error
         if (cancelled) return
 
         const row = Array.isArray(data) ? data[0] : data
         setOverlay(row || null)
-        setLoadError(null)
-      } catch (error) {
+      } catch {
         if (!cancelled) {
-          setLoadError(error instanceof Error ? error.message : 'Falha ao carregar overlay')
+          setOverlay(null)
         }
       } finally {
-        if (!cancelled) setLoaded(true)
+        if (!cancelled) {
+          setLoaded(true)
+        }
       }
     }
 
     loadOverlay()
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        loadOverlay()
-      }
-    }
 
     const channel = supabase
       .channel(`shared-overlay-${publicId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'overlays' }, () => {
-        if (document.visibilityState === 'visible') {
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'overlays',
+        },
+        () => {
           loadOverlay()
         }
-      })
+      )
       .subscribe()
 
-    const interval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
-        loadOverlay()
-      }
-    }, 1000)
-
-    document.addEventListener('visibilitychange', handleVisibility)
+    const interval = setInterval(loadOverlay, 1000)
 
     return () => {
       cancelled = true
       clearInterval(interval)
-      document.removeEventListener('visibilitychange', handleVisibility)
       supabase.removeChannel(channel)
     }
   }, [publicId])
 
-  const elements = useMemo(
-    () => [...(overlay?.data?.elements || [])]
+  const elements = useMemo(() => {
+    return [...(overlay?.data?.elements || [])]
       .filter((element) => element.visible !== false)
-      .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0)),
-    [overlay]
-  )
+      .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
+  }, [overlay])
 
   const scale = overlay
-    ? Math.min(viewport.width / Math.max(overlay.width || 1, 1), viewport.height / Math.max(overlay.height || 1, 1))
+    ? Math.min(
+      viewport.width / Math.max(overlay.width || 1920, 1),
+      viewport.height / Math.max(overlay.height || 1080, 1)
+    )
     : 1
 
-  if (!loaded) {
-    return <div className="fixed inset-0 overflow-hidden bg-transparent" />
-  }
-
-  if (!overlay) {
-    return (
-      <div className="fixed inset-0 overflow-hidden bg-transparent flex items-center justify-center">
-        <div className="text-center p-6 bg-black/80 rounded-lg">
-          <p className="text-white/70 text-lg">{loadError ? 'Falha ao carregar overlay' : 'Overlay não encontrado'}</p>
-          <p className="text-white/40 text-sm mt-2">{loadError || `ID: ${publicId}`}</p>
-        </div>
-      </div>
-    )
+  if (!loaded || !overlay) {
+    return <div className="fixed inset-0 bg-transparent overflow-hidden" />
   }
 
   return (
-    <div className="fixed inset-0 overflow-hidden bg-transparent flex items-center justify-center select-none" style={{ userSelect: 'none' }}>
+    <div
+      data-overlay-transparent-root
+      className="fixed inset-0 bg-transparent overflow-hidden flex items-center justify-center select-none pointer-events-none"
+      style={{
+        userSelect: 'none',
+        background: 'transparent',
+      }}
+    >
       <div
-        className="relative overflow-hidden origin-center select-none"
+        className="relative bg-transparent overflow-visible origin-center select-none"
         style={{
-          width: overlay.width,
-          height: overlay.height,
+          width: overlay.width || 1920,
+          height: overlay.height || 1080,
           transform: `scale(${scale})`,
+          background: 'transparent',
         }}
       >
         {elements.map(renderElement)}
