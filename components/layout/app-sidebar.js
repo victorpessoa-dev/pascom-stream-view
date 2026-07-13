@@ -30,6 +30,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useStore } from '@/lib/store/store'
 import { cn } from '@/lib/utils/cn'
 
+const SIDEBAR_STORAGE_KEY = 'pascom:admin-sidebar-collapsed'
+
 const navItems = [
   { title: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { title: 'Overlay', href: '/overlay', icon: Monitor },
@@ -50,13 +52,24 @@ export default function AppSidebar() {
 
   useEffect(() => {
     const syncCollapsed = () => {
-      setCollapsed(window.innerWidth < 1280)
+      if (window.innerWidth < 1280) {
+        setCollapsed(true)
+        return
+      }
+
+      setCollapsed(localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true')
     }
 
     syncCollapsed()
     window.addEventListener('resize', syncCollapsed)
     return () => window.removeEventListener('resize', syncCollapsed)
   }, [])
+
+  const updateCollapsed = (value) => {
+    setCollapsed(value)
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, String(value))
+    window.dispatchEvent(new CustomEvent('pascom_sidebar_resize'))
+  }
 
   async function onLogout() {
     try {
@@ -171,7 +184,7 @@ export default function AppSidebar() {
         <div className="space-y-2 border-t border-sidebar-border px-3 py-6">
           <button
             type="button"
-            onClick={() => setCollapsed((value) => !value)}
+            onClick={() => updateCollapsed(!collapsed)}
             aria-label={collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
             className={cn(
               'hidden w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring xl:flex',

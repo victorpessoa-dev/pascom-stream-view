@@ -26,10 +26,12 @@ export default function AppShell({ children }) {
 
     updateWidth()
     window.addEventListener('resize', updateWidth)
+    window.addEventListener('pascom_sidebar_resize', updateWidth)
 
     return () => {
       observer.disconnect()
       window.removeEventListener('resize', updateWidth)
+      window.removeEventListener('pascom_sidebar_resize', updateWidth)
     }
   }, [])
 
@@ -59,14 +61,16 @@ export default function AppShell({ children }) {
     <div className="min-h-screen overflow-x-hidden bg-background">
       <AppSidebar />
       <main
-        className="flex min-h-screen min-w-0 flex-col transition-sidebar"
+        className="flex min-h-screen min-w-0 flex-col items-center transition-sidebar"
         style={{
           marginLeft: sidebarWidth,
           width: `calc(100% - ${sidebarWidth}px)`,
         }}
       >
-        {children}
-        <AppFooter className="mt-auto" />
+        <div className="flex min-h-screen w-full min-w-0 flex-col">
+          {children}
+          <AppFooter className="mt-auto" />
+        </div>
       </main>
     </div>
   )
