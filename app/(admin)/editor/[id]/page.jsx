@@ -1,6 +1,6 @@
 'use client'
 
-import OverlayEditor from '@/components/overlay-editor'
+import OverlayEditor from '@/components/overlays/overlay-editor'
 import { use } from 'react'
 
 export default function EditorPage({ params }) {

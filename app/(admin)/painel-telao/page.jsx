@@ -3,10 +3,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ExternalLink, Play, TimerReset } from 'lucide-react'
 import Link from 'next/link'
-import AppShell from '@/components/app-shell'
-import AdManager from '@/components/ad-manager'
+import AppShell from '@/components/layout/app-shell'
+import PageContainer from '@/components/layout/page-container'
+import AdManager from '@/components/sponsors/ad-manager'
 import { Button } from '@/components/ui/button'
-import { useStore } from '@/lib/store'
+import { useStore } from '@/lib/store/store'
+import { getTelaoDefaultDurations } from '@/lib/services/settings'
 import { createSupabaseBrowserClient } from '@/services/supabase/browser'
 
 function formatDuration(seconds) {
@@ -60,20 +62,10 @@ export default function PainelTelaoPage() {
     async function loadAdminSettings() {
       try {
         const supabase = createSupabaseBrowserClient()
-        const { data, error } = await supabase.from('app_settings').select('value').eq('key', 'admin_settings').maybeSingle()
-        if (error) throw error
-
-        const telao = data?.value?.telao || {}
-        if (mounted) {
-          setDefaultDurations({
-            NORMAL: Number(telao.defaultDurationNormal) || Number(telao.defaultDuration) || 10,
-            MASTER: Number(telao.defaultDurationMaster) || Number(telao.defaultDuration) || 15,
-          })
-        }
+        const durations = await getTelaoDefaultDurations(supabase)
+        if (mounted) setDefaultDurations(durations)
       } catch {
-        if (mounted) {
-          setDefaultDurations({ NORMAL: 10, MASTER: 15 })
-        }
+        if (mounted) setDefaultDurations({ NORMAL: 10, MASTER: 15 })
       }
     }
 
@@ -85,7 +77,7 @@ export default function PainelTelaoPage() {
 
   return (
     <AppShell>
-      <div className="px-4 py-5 sm:px-6 lg:px-8">
+      <PageContainer>
         <section className="border-b border-border/70 pb-5">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
@@ -148,7 +140,7 @@ export default function PainelTelaoPage() {
         <section className="pt-5">
           <AdManager defaultDurations={defaultDurations} />
         </section>
-      </div>
+      </PageContainer>
     </AppShell>
   )
 }

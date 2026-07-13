@@ -1,4 +1,4 @@
-insert into public.app_settings (
+﻿insert into public.app_settings (
   key,
   value
 )
@@ -63,3 +63,68 @@ set value = jsonb_build_object(
   )
 )
 where key = 'sponsor_settings';
+
+insert into public.app_settings (
+  key,
+  value
+)
+values (
+  'admin_settings',
+  '{
+    "telao": {
+      "defaultDurationNormal": 10,
+      "defaultDurationMaster": 15
+    },
+    "appearance": {
+      "parishName": "",
+      "parishCity": "",
+      "parishProfile": "",
+      "parishLogoUrl": "/brand/icon-logo.svg",
+      "parishCoverUrl": "",
+      "parishInstagramUrl": "",
+      "parishFacebookUrl": "",
+      "parishYoutubeUrl": "",
+      "parishWhatsappUrl": "",
+      "parishWebsiteUrl": "",
+      "parishSocialLinks": []
+    }
+  }'::jsonb
+)
+on conflict (key) do nothing;
+
+update public.app_settings
+set value = (value - 'overlay' - 'advanced') || jsonb_build_object(
+  'telao',
+  '{
+    "defaultDurationNormal": 10,
+    "defaultDurationMaster": 15
+  }'::jsonb || (
+    coalesce(value->'telao', '{}'::jsonb)
+      - 'transitionType'
+      - 'transitionDuration'
+      - 'autoplay'
+      - 'shuffle'
+      - 'showProgressBar'
+  ),
+  'appearance',
+  '{
+    "parishName": "",
+    "parishCity": "",
+    "parishProfile": "",
+    "parishLogoUrl": "/brand/icon-logo.svg",
+    "parishCoverUrl": "",
+    "parishInstagramUrl": "",
+    "parishFacebookUrl": "",
+    "parishYoutubeUrl": "",
+    "parishWhatsappUrl": "",
+    "parishWebsiteUrl": ""
+  }'::jsonb || (
+    coalesce(value->'appearance', '{}'::jsonb)
+      - 'accentColor'
+      - 'animationsEnabled'
+      - 'compactMode'
+  )
+)
+where key = 'admin_settings';
+
+

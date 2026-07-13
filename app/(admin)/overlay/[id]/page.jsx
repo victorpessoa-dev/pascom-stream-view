@@ -1,7 +1,7 @@
 'use client'
 
 import { use, useMemo } from 'react'
-import { useStore } from '@/lib/store'
+import { useStore } from '@/lib/store/store'
 
 export default function OverlayPage({ params }) {
   const { id } = use(params)
@@ -51,7 +51,6 @@ export default function OverlayPage({ params }) {
             }}
           >
             {element.type === 'image' && element.src && (
-              // eslint-disable-next-line @next/next/no-img-element
               <img src={element.src} alt="" className="w-full h-full object-contain" draggable={false} />
             )}
             {element.type === 'text' && (

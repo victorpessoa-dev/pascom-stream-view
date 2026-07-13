@@ -1,0 +1,211 @@
+﻿'use client'
+
+import { Globe } from 'lucide-react'
+import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
+import { Switch } from '@/components/ui/switch'
+import { getSocialIcon } from '@/components/shared/social-links'
+
+export function SettingRow({ title, description, control }) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div>
+        <Label>{title}</Label>
+        {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+      </div>
+      {control}
+    </div>
+  )
+}
+
+export function SponsorDesignPreview({ title, settings }) {
+  const zoom = settings.contentWidth ?? 58
+  const top = settings.y ?? 50
+  const left = settings.x ?? 50
+
+  return (
+    <div className="space-y-3">
+      <div className="text-sm font-medium">{title}</div>
+      <div className="relative aspect-video overflow-hidden rounded-xl border border-border bg-black">
+        {settings.backgroundEnabled && settings.backgroundUrl ? (
+          <img src={settings.backgroundUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.12),_transparent_45%),linear-gradient(135deg,_rgba(255,255,255,0.08),_transparent)]" />
+        )}
+
+        <div
+          className="absolute rounded-lg border-2 border-dashed border-primary bg-primary/15"
+          style={{
+            width: `${zoom}%`,
+            height: `${zoom}%`,
+            left: `${left}%`,
+            top: `${top}%`,
+            transform: 'translate(-50%, -50%)',
+          }}
+        >
+          <div className="flex h-full items-center justify-center text-center text-xs font-medium text-primary">
+            Área da mídia
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function DesignAdjustmentDrop({ kind, settings, onChange, onBatchChange, onUpload }) {
+  const isNormal = kind === 'NORMAL'
+  const zoom = settings.contentWidth ?? 58
+
+  const handleZoomChange = (value) => {
+    onBatchChange({
+      contentWidth: value,
+      contentHeight: value,
+    })
+  }
+
+  return (
+    <AccordionItem value={kind} className="rounded-xl border border-border px-4">
+      <AccordionTrigger className="hover:no-underline">
+        <div>
+          <div className="font-medium">{isNormal ? 'Patrocínio normal' : 'Patrocínio master'}</div>
+          <div className="text-sm text-muted-foreground">
+            {isNormal
+              ? 'Ajuste global dos patrocinadores normais exibidos em /telao.'
+              : 'Ajuste global dos patrocinadores master exibidos em /telao-master.'}
+          </div>
+        </div>
+      </AccordionTrigger>
+      <AccordionContent className="space-y-6">
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
+          <div className="space-y-5">
+            <SettingRow
+              title="Layout ativado"
+              description="Controla posição, zoom e visibilidade da área da mídia."
+              control={<Switch checked={settings.enabled} onCheckedChange={(checked) => onChange('enabled', checked)} />}
+            />
+
+            <SettingRow
+              title="Usar fundo"
+              description={`Ativa uma imagem de fundo para ${isNormal ? 'os patrocinadores normais' : 'os patrocinadores master'}.`}
+              control={<Switch checked={settings.backgroundEnabled} onCheckedChange={(checked) => onChange('backgroundEnabled', checked)} />}
+            />
+
+            <div className="space-y-2">
+              <Label>Imagem de fundo</Label>
+              <Input
+                placeholder="https://exemplo.com/arte-fundo.png"
+                value={settings.backgroundUrl || ''}
+                onChange={(event) => onChange('backgroundUrl', event.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Upload da imagem de fundo</Label>
+              <Input type="file" accept="image/*" onChange={(event) => onUpload(event.target.files?.[0])} />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Zoom da área ({zoom}%)</Label>
+              <Slider value={[zoom]} onValueChange={([value]) => handleZoomChange(value)} min={10} max={100} step={1} />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Posição horizontal ({settings.x ?? 50}%)</Label>
+                <Slider value={[settings.x ?? 50]} onValueChange={([value]) => onChange('x', value)} min={0} max={100} step={1} />
+              </div>
+              <div className="space-y-2">
+                <Label>Posição vertical ({settings.y ?? 50}%)</Label>
+                <Slider value={[settings.y ?? 50]} onValueChange={([value]) => onChange('y', value)} min={0} max={100} step={1} />
+              </div>
+            </div>
+          </div>
+
+          <SponsorDesignPreview
+            title={isNormal ? 'Preview do /telao' : 'Preview do /telao-master'}
+            settings={settings}
+          />
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  )
+}
+
+const socialLabelMap = {
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  youtube: 'YouTube',
+  whatsapp: 'WhatsApp',
+  website: 'Site',
+}
+
+function getVisibleSocialLinks(socialLinks = {}) {
+  const fixedLinks = Object.entries(socialLinks)
+    .filter(([key]) => key !== 'extra')
+    .map(([key, url]) => ({ key, label: socialLabelMap[key] || key, url: String(url || '').trim() }))
+    .filter(({ url }) => url)
+
+  const extraLinks = Array.isArray(socialLinks.extra) ? socialLinks.extra : []
+
+  return [
+    ...fixedLinks,
+    ...extraLinks
+      .map((item, index) => ({
+        key: `extra-${index}`,
+        label: String(item?.label || 'Link').trim(),
+        url: String(item?.url || '').trim(),
+      }))
+      .filter(({ url }) => url),
+  ]
+}
+
+export function BrandPreview({ parishName, parishLogoUrl, parishCoverUrl = '', parishCity = '', parishProfile = '', socialLinks = {} }) {
+  const visibleSocialLinks = getVisibleSocialLinks(socialLinks)
+
+  return (
+    <div className="rounded-2xl border border-border bg-card/50 p-4">
+      <div className="text-sm font-medium">Prévia da marca</div>
+      <div className="mt-4 overflow-hidden rounded-xl border border-sidebar-border bg-sidebar">
+        <div className="relative min-h-40 bg-sidebar-accent">
+          {parishCoverUrl ? (
+            <img src={parishCoverUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.18),_transparent_34%),linear-gradient(135deg,_rgba(59,130,246,0.30),_rgba(15,23,42,0.7))]" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 flex items-end gap-3 p-3">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/70 bg-primary">
+              <img src={parishLogoUrl || '/brand/icon-logo.svg'} alt="" className="h-full w-full object-cover" />
+            </div>
+            <div className="min-w-0 pb-1 text-white drop-shadow">
+              <div className="truncate text-sm font-semibold tracking-tight">
+              {parishName || 'Nome da paróquia'}
+              </div>
+              {(parishCity || parishProfile) ? (
+                <div className="mt-1 truncate text-xs text-white/75">
+                  {[parishCity, parishProfile].filter(Boolean).join(' · ')}
+                </div>
+              ) : null}
+              {visibleSocialLinks.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {visibleSocialLinks.map(({ key, label }) => {
+                    const Icon = getSocialIcon(label) || Globe
+
+                    return (
+                      <span key={key} className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/25">
+                        <Icon className="h-3.5 w-3.5" />
+                        <span className="sr-only">{label || 'Link'}</span>
+                      </span>
+                    )
+                  })}
+                </div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-const ADMIN_PATHS = ['/', '/configuracoes', '/editor', '/overlay', '/painel-telao']
-const PUBLIC_PATHS = ['/anunciantes', '/dashboard', '/login', '/shared', '/telao', '/telao-master', '/telao/visualizar']
+const ADMIN_PATHS = ['/admin', '/configuracoes', '/editor', '/overlay', '/painel-telao']
+const PUBLIC_PATHS = ['/', '/anunciantes', '/login', '/shared', '/telao', '/telao-master', '/telao/visualizar']
 
 function isPublicPath(pathname) {
   return PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))

@@ -141,6 +141,7 @@ as $$
     s.created_at,
     s.updated_at
   from public.sponsors s
+  where s.active
   order by s.active desc, s.last_displayed_at desc nulls last, s.created_at desc;
 $$;
 
@@ -198,6 +199,41 @@ $$;
 
 grant execute on function public.get_sponsor_settings() to anon, authenticated;
 
+drop function if exists public.get_public_parish_profile();
+create or replace function public.get_public_parish_profile()
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'parishName', coalesce(settings.value #>> '{appearance,parishName}', ''),
+    'parishCity', coalesce(settings.value #>> '{appearance,parishCity}', ''),
+    'parishProfile', coalesce(settings.value #>> '{appearance,parishProfile}', ''),
+    'parishLogoUrl', coalesce(nullif(settings.value #>> '{appearance,parishLogoUrl}', ''), '/brand/icon-logo.svg'),
+    'parishCoverUrl', coalesce(settings.value #>> '{appearance,parishCoverUrl}', ''),
+    'parishInstagramUrl', coalesce(settings.value #>> '{appearance,parishInstagramUrl}', ''),
+    'parishFacebookUrl', coalesce(settings.value #>> '{appearance,parishFacebookUrl}', ''),
+    'parishYoutubeUrl', coalesce(settings.value #>> '{appearance,parishYoutubeUrl}', ''),
+    'parishWhatsappUrl', coalesce(settings.value #>> '{appearance,parishWhatsappUrl}', ''),
+    'parishWebsiteUrl', coalesce(settings.value #>> '{appearance,parishWebsiteUrl}', ''),
+    'parishSocialLinks', coalesce(settings.value #> '{appearance,parishSocialLinks}', '[]'::jsonb)
+  )
+  from (
+    select coalesce(
+      (
+        select value
+        from public.app_settings
+        where key = 'admin_settings'
+      ),
+      '{}'::jsonb
+    ) as value
+  ) settings;
+$$;
+
+grant execute on function public.get_public_parish_profile() to anon, authenticated;
+
 drop function if exists public.log_sponsor_impression(uuid, timestamptz, integer, text);
 create or replace function public.log_sponsor_impression(
   sponsor_id uuid,
@@ -227,11 +263,11 @@ begin
   from public.app_settings
   where key = 'sponsor_settings';
 
-  if safe_source <> 'telao' then
+  if coalesce((settings->>'metricsEnabled')::boolean, false) is not true then
     return null;
   end if;
 
-  if coalesce((settings->>'metricsEnabled')::boolean, false) is not true then
+  if safe_source not in ('telao', 'telao-master') then
     return null;
   end if;
 
@@ -271,6 +307,42 @@ $$;
 
 grant execute on function public.log_sponsor_impression(uuid, timestamptz, integer, text) to anon, authenticated;
 
+drop function if exists public.log_sponsor_impressions(jsonb);
+create or replace function public.log_sponsor_impressions(logs_arg jsonb)
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  log_item jsonb;
+  impression_id uuid;
+  processed integer := 0;
+begin
+  if logs_arg is null or jsonb_typeof(logs_arg) <> 'array' then
+    raise exception 'logs_arg must be a JSON array';
+  end if;
+
+  for log_item in
+    select value from jsonb_array_elements(logs_arg)
+  loop
+    impression_id := public.log_sponsor_impression(
+      nullif(log_item->>'sponsor_id', '')::uuid,
+      coalesce(nullif(log_item->>'displayed_at', '')::timestamptz, now()),
+      coalesce(nullif(log_item->>'duration_seconds', '')::integer, 0),
+      coalesce(nullif(log_item->>'source', ''), 'telao')
+    );
+    if impression_id is not null then
+      processed := processed + 1;
+    end if;
+  end loop;
+
+  return processed;
+end;
+$$;
+
+grant execute on function public.log_sponsor_impressions(jsonb) to anon, authenticated;
+
 drop function if exists public.record_sponsor_view(uuid, integer);
 create or replace function public.record_sponsor_view(sponsor_id uuid, seconds integer)
 returns void
@@ -281,16 +353,17 @@ as $$
 declare
   settings jsonb;
 begin
+
+  if sponsor_id is null then
+    return;
+  end if;
+
   select value
   into settings
   from public.app_settings
   where key = 'sponsor_settings';
 
   if coalesce((settings->>'metricsEnabled')::boolean, false) is not true then
-    return;
-  end if;
-
-  if sponsor_id is null then
     return;
   end if;
 
@@ -346,6 +419,7 @@ as $$
     s.updated_at
   from public.sponsors s
   where s.id = sponsor_id_arg
+    and s.active
   limit 1;
 $$;
 
@@ -370,8 +444,11 @@ as $$
     si.duration_seconds,
     si.source
   from public.sponsor_impressions si
+  join public.sponsors s on s.id = si.sponsor_id
   where si.sponsor_id = sponsor_id_arg
+    and s.active
   order by si.displayed_at desc;
 $$;
 
 grant execute on function public.get_public_sponsor_impressions(uuid) to anon, authenticated;
+

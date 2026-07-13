@@ -2,12 +2,13 @@
 
 import { useMemo, useState } from 'react'
 import { Layers, Plus, Search } from 'lucide-react'
-import AppShell from '@/components/app-shell'
-import OverlayList from '@/components/overlay-list'
-import CreateOverlayDialog from '@/components/create-overlay-dialog'
+import AppShell from '@/components/layout/app-shell'
+import PageContainer from '@/components/layout/page-container'
+import OverlayList from '@/components/overlays/overlay-list'
+import CreateOverlayDialog from '@/components/overlays/create-overlay-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useStore } from '@/lib/store'
+import { useStore } from '@/lib/store/store'
 
 function MetricItem({ label, value }) {
   return (
@@ -45,7 +46,7 @@ export default function OverlaysPage() {
 
   return (
     <AppShell>
-      <div className="px-4 py-5 sm:px-6 lg:px-8">
+      <PageContainer>
         <section className="border-b border-border/70 pb-5">
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
@@ -99,7 +100,7 @@ export default function OverlaysPage() {
         </section>
 
         <CreateOverlayDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
-      </div>
+      </PageContainer>
     </AppShell>
   )
 }
