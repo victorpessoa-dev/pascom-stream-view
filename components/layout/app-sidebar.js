@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -15,7 +15,6 @@ import {
   Play,
   Settings,
 } from 'lucide-react'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,13 +26,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useStore } from '@/lib/store/store'
 import { cn } from '@/lib/utils/cn'
 
 const navItems = [
   { title: 'Dashboard', href: '/admin', icon: LayoutDashboard },
   { title: 'Overlay', href: '/overlay', icon: Monitor },
-  { title: 'Painel do Telão', href: '/painel-telao', icon: Megaphone },
+  { title: 'Painel do telão', href: '/painel-telao', icon: Megaphone },
   { title: 'Configurações', href: '/configuracoes', icon: Settings },
 ]
 
@@ -44,9 +44,19 @@ const publicLinks = [
 ]
 
 export default function AppSidebar() {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(true)
   const pathname = usePathname()
   const { overlays, ads, isLoaded } = useStore()
+
+  useEffect(() => {
+    const syncCollapsed = () => {
+      setCollapsed(window.innerWidth < 1280)
+    }
+
+    syncCollapsed()
+    window.addEventListener('resize', syncCollapsed)
+    return () => window.removeEventListener('resize', syncCollapsed)
+  }, [])
 
   async function onLogout() {
     try {
@@ -61,12 +71,12 @@ export default function AppSidebar() {
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
-          'fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-sidebar',
+          'fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar shadow-2xl shadow-black/20 transition-sidebar',
           collapsed ? 'w-[72px]' : 'w-[260px]'
         )}
       >
-        <div className={cn('flex h-16 items-center border-b border-sidebar-border px-4', collapsed ? 'justify-center' : 'gap-3')}>
-          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg p-1">
+        <div className={cn('flex min-h-24 items-center border-b border-sidebar-border px-6 py-5', collapsed ? 'justify-center' : 'gap-4')}>
+          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg p-1">
             <img src="/brand/icon-logo.svg" alt="" className="h-full w-full object-contain" />
           </div>
           {!collapsed ? (
@@ -79,7 +89,7 @@ export default function AppSidebar() {
           ) : null}
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-6">
           {navItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
             const badgeValue =
@@ -125,7 +135,7 @@ export default function AppSidebar() {
           })}
         </nav>
 
-        <div className="space-y-1 border-t border-sidebar-border px-3 py-4">
+        <div className="space-y-1 border-t border-sidebar-border px-3 py-6">
           {publicLinks.map((item) => {
             const quickLink = (
               <Link
@@ -158,13 +168,13 @@ export default function AppSidebar() {
           })}
         </div>
 
-        <div className="space-y-1 border-t border-sidebar-border px-3 py-3">
+        <div className="space-y-2 border-t border-sidebar-border px-3 py-6">
           <button
             type="button"
             onClick={() => setCollapsed((value) => !value)}
             aria-label={collapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
             className={cn(
-              'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
+              'hidden w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring xl:flex',
               collapsed && 'justify-center px-0'
             )}
           >

@@ -1,61 +1,70 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import AppSidebar from '@/components/layout/app-sidebar'
 import AppFooter from '@/components/shared/app-footer'
 import { Button } from '@/components/ui/button'
-import { useIsMobile } from '@/hooks/ui/use-mobile'
 
 export default function AppShell({ children }) {
-  const [sidebarWidth, setSidebarWidth] = useState(260)
-  const isMobile = useIsMobile()
+  const [sidebarWidth, setSidebarWidth] = useState(72)
+  const [isMobileAdmin, setIsMobileAdmin] = useState(false)
 
   useEffect(() => {
-    if (isMobile) return
-
-    const observer = new MutationObserver(() => {
+    const updateWidth = () => {
       const sidebar = document.querySelector('aside')
-      if (sidebar) {
-        setSidebarWidth(sidebar.offsetWidth)
-      }
-    })
-
-    const sidebar = document.querySelector('aside')
-    if (sidebar) {
-      observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] })
-      setSidebarWidth(sidebar.offsetWidth)
+      setIsMobileAdmin(window.innerWidth < 768)
+      setSidebarWidth(window.innerWidth >= 768 && sidebar ? sidebar.offsetWidth : 0)
     }
 
-    return () => observer.disconnect()
-  }, [isMobile])
+    const observer = new MutationObserver(updateWidth)
+    const sidebar = document.querySelector('aside')
 
-  if (isMobile) {
+    if (sidebar) {
+      observer.observe(sidebar, { attributes: true, attributeFilter: ['class'] })
+    }
+
+    updateWidth()
+    window.addEventListener('resize', updateWidth)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', updateWidth)
+    }
+  }, [])
+
+  if (isMobileAdmin) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-6">
-        <div className="w-full max-w-md rounded-xl border border-border bg-card p-6">
-          <img src="/brand/emblema-16-9.svg" alt="PASCOM Stream View" className="mx-auto mb-5 h-14 w-fit object-contain" />
-          <div className="text-lg font-semibold">Painel administrativo</div>
-          <div className="mt-2 text-sm text-muted-foreground">
-            O admin não está disponível em mobile. Acesse pelo computador.
-          </div>
-          <div className="mt-6 flex gap-3">
-            <Link href="/" className="flex-1">
-              <Button variant="secondary" className="w-full">Página pública</Button>
-            </Link>
-            <Link href="/telao" className="flex-1">
-              <Button className="w-full">Abrir telão</Button>
-            </Link>
+      <main className="flex min-h-screen items-center justify-center bg-background p-6">
+        <div className="w-full max-w-sm rounded-lg border border-border bg-card p-6 text-center shadow-xl">
+          <img src="/brand/icon-logo.svg" alt="" className="mx-auto h-12 w-12 object-contain" />
+          <h1 className="mt-5 text-xl font-semibold text-foreground">Painel administrativo</h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            O admin nao funciona em modo mobile. Acesse pelo computador ou por uma tela maior.
+          </p>
+          <div className="mt-6 grid gap-2">
+            <Button asChild>
+              <Link href="/">Pagina publica</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/telao">Abrir telao</Link>
+            </Button>
           </div>
         </div>
-      </div>
+      </main>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen overflow-x-hidden bg-background">
       <AppSidebar />
-      <main className="flex min-h-screen flex-col transition-sidebar" style={{ marginLeft: sidebarWidth }}>
+      <main
+        className="flex min-h-screen min-w-0 flex-col transition-sidebar"
+        style={{
+          marginLeft: sidebarWidth,
+          width: `calc(100% - ${sidebarWidth}px)`,
+        }}
+      >
         {children}
         <AppFooter className="mt-auto" />
       </main>

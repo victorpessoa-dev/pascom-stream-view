@@ -52,6 +52,7 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { uploadMedia } from '@/services/supabase/upload'
+import LoadingState from '@/components/shared/loading-state'
 import StaticMediaFrame from '@/components/shared/static-media-frame'
 import { resolveSnapPosition } from '@/lib/services/overlay-editor'
 
@@ -380,14 +381,7 @@ export default function OverlayEditor({ overlayId }) {
   }, [isDragging, handleMouseMove, handleMouseUp])
 
   if (!isLoaded || !overlay) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-          <p className="text-sm text-muted-foreground">Carregando editor...</p>
-        </div>
-      </div>
-    )
+    return <LoadingState fullScreen label="Carregando editor..." />
   }
 
   return (

@@ -11,14 +11,23 @@ export function AdManagerToolbar({
   onCopyPublicUrl,
   onOpenCreateDialog,
   metricsEnabled,
+  metricsPaused,
+  activeCounts,
   onMetricsToggle,
+  onMetricsPauseToggle,
 }) {
+  const normalPaused = Boolean(metricsPaused?.NORMAL)
+  const masterPaused = Boolean(metricsPaused?.MASTER)
+  const normalActiveCount = activeCounts?.NORMAL || 0
+  const masterActiveCount = activeCounts?.MASTER || 0
+  const hasAnyActiveSponsor = normalActiveCount > 0 || masterActiveCount > 0
+
   return (
     <section className="flex flex-col gap-4 border-b border-border/70 pb-5">
       <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Playlist pública</div>
-          <h2 className="mt-1 text-xl font-semibold text-foreground">Patrocínios cadastrados</h2>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Playlist publica</div>
+          <h2 className="mt-1 text-xl font-semibold text-foreground">Patrocinios cadastrados</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Ative, edite e acompanhe os patrocinadores a partir de uma lista operacional mais enxuta.
           </p>
@@ -26,7 +35,7 @@ export function AdManagerToolbar({
 
         <Button onClick={onOpenCreateDialog} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
-          Novo patrocínio
+          Novo patrocinio
         </Button>
       </div>
 
@@ -41,14 +50,53 @@ export function AdManagerToolbar({
           />
         </div>
 
-        <div className="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:gap-4">
-          <div className="flex items-center gap-3">
-            <Switch id="metrics-enabled" checked={metricsEnabled} onCheckedChange={onMetricsToggle} />
-            <label htmlFor="metrics-enabled" className="cursor-pointer font-medium text-foreground">
-              Contador do telão
+        <div className="rounded-lg border border-border/80 p-3">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <label htmlFor="metrics-enabled" className="cursor-pointer text-sm font-medium text-foreground">
+                Contador do telao
+              </label>
+              <div className="mt-1 text-xs text-muted-foreground">
+                Conta apenas tipos com patrocinadores ativos.
+              </div>
+            </div>
+            <Switch
+              id="metrics-enabled"
+              checked={metricsEnabled}
+              disabled={!hasAnyActiveSponsor}
+              onCheckedChange={onMetricsToggle}
+            />
+          </div>
+
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <label className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2 text-xs">
+              <span>
+                <span className="block font-medium text-foreground">NORMAL</span>
+                <span className="text-muted-foreground">{normalActiveCount} ativo(s)</span>
+              </span>
+              <Switch
+                id="metrics-normal"
+                checked={metricsEnabled && !normalPaused}
+                disabled={normalActiveCount === 0}
+                onCheckedChange={(checked) => onMetricsPauseToggle('NORMAL', !checked)}
+              />
+            </label>
+            <label className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2 text-xs">
+              <span>
+                <span className="block font-medium text-foreground">MASTER</span>
+                <span className="text-muted-foreground">{masterActiveCount} ativo(s)</span>
+              </span>
+              <Switch
+                id="metrics-master"
+                checked={metricsEnabled && !masterPaused}
+                disabled={masterActiveCount === 0}
+                onCheckedChange={(checked) => onMetricsPauseToggle('MASTER', !checked)}
+              />
             </label>
           </div>
-          <span className="text-xs">Conta somente exibições reais do telão público.</span>
+          {!hasAnyActiveSponsor ? (
+            <div className="mt-2 text-xs text-destructive">Ative um patrocinador NORMAL ou MASTER para ligar o contador.</div>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -75,12 +123,12 @@ export function AdManagerEmptyState({ orderedAdsLength, filteredAdsLength, onCle
         <Search className="h-full w-full" />
       </div>
       <h3 className="text-lg font-semibold text-foreground">
-        {orderedAdsLength === 0 ? 'Nenhum patrocínio cadastrado' : 'Nenhum resultado encontrado'}
+        {orderedAdsLength === 0 ? 'Nenhum patrocinio cadastrado' : 'Nenhum resultado encontrado'}
       </h3>
       <p className="mt-2 max-w-md text-sm text-muted-foreground">
         {orderedAdsLength === 0
-          ? 'Adicione anúncios para montar a playlist pública do telão.'
-          : 'Tente outro termo para localizar o patrocinador no painel do telão.'}
+          ? 'Adicione anuncios para montar a playlist publica do telao.'
+          : 'Tente outro termo para localizar o patrocinador no painel do telao.'}
       </p>
       {noResults && onClearSearch ? (
         <Button className="mt-4" variant="outline" onClick={onClearSearch}>

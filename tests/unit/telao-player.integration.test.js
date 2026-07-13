@@ -9,12 +9,15 @@ describe('telao player integration helpers', () => {
 
   it('keeps a stable signature for the current ad list', () => {
     const signature = buildAdsSignature([
-      { id: 'ad-1', updatedAt: '2024-01-01', duration: 10, active: true, src: 'a.webp', type: 'NORMAL' },
+      { id: 'ad-1', updatedAt: '2024-01-01', duration: 10, active: true, src: 'a.webp', type: 'NORMAL', mediaType: 'image' },
     ])
 
-    expect(signature).toBe(JSON.stringify([
-      { id: 'ad-1', updatedAt: '2024-01-01', duration: 10, active: true, src: 'a.webp', type: 'NORMAL' },
-    ]))
+    expect(signature).toBe(JSON.stringify({
+      ads: [
+        { id: 'ad-1', updatedAt: '2024-01-01', duration: 10, active: true, src: 'a.webp', type: 'NORMAL', mediaType: 'image' },
+      ],
+      settings: null,
+    }))
   })
 
   it('uses the default empty settings and preserves the input order when shuffling is deterministic', () => {

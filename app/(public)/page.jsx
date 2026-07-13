@@ -10,9 +10,11 @@ import { Input } from '@/components/ui/input'
 import AppFooter from '@/components/shared/app-footer'
 import PaginationControls from '@/components/shared/pagination-controls'
 import PageContainer from '@/components/layout/page-container'
+import LoadingState from '@/components/shared/loading-state'
+import StaticMediaFrame from '@/components/shared/static-media-frame'
 import { normalizeSocialLinks } from '@/components/shared/social-links'
 
-const PUBLIC_PAGE_SIZE = 9
+const PUBLIC_PAGE_SIZE = 12
 
 function formatDuration(seconds) {
   const total = Math.max(0, Math.floor(Number(seconds) || 0))
@@ -21,7 +23,11 @@ function formatDuration(seconds) {
   return minutes > 0 ? `${minutes}m ${rest}s` : `${rest}s`
 }
 
-function Media({ ad, className = '' }) {
+function Media({ ad, className = '', staticFrame = false }) {
+  if (staticFrame) {
+    return <StaticMediaFrame src={ad.src} alt={ad.name} type={ad.mediaType || 'image'} className={className} />
+  }
+
   if (ad.mediaType === 'video') {
     return <video src={ad.src} className={className} muted playsInline autoPlay loop />
   }
@@ -180,7 +186,7 @@ export default function PublicDashboardPage() {
   }, [loading])
 
   if (loading) {
-    return <div className="min-h-screen bg-background" />
+    return <LoadingState fullScreen label="Carregando página pública..." />
   }
 
   return (
@@ -217,7 +223,7 @@ export default function PublicDashboardPage() {
         </header>
 
         <section ref={parishProfileRef} className="overflow-hidden rounded-lg border border-border bg-card">
-          <div className="relative min-h-[260px] bg-muted sm:min-h-[320px]">
+          <div className="relative min-h-[300px] bg-muted sm:min-h-[320px]">
             {parishInfo.parishCoverUrl ? (
               <img src={parishInfo.parishCoverUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
             ) : (
@@ -225,52 +231,52 @@ export default function PublicDashboardPage() {
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/5" />
 
-            <div className="absolute inset-x-0 bottom-0 flex flex-col gap-4 p-4 sm:flex-row sm:items-end sm:justify-between sm:p-6">
-              <div className="flex min-w-0 items-end gap-4">
-                <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/70 bg-white/10 text-white shadow-xl sm:h-24 sm:w-24">
+            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-4 sm:p-6">
+              <div className="flex min-w-0 items-center gap-3 pr-12 text-left sm:gap-4 sm:pr-32">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/70 bg-white/10 text-white shadow-xl sm:h-24 sm:w-24">
                   {parishInfo.parishLogoUrl ? (
                     <img src={parishInfo.parishLogoUrl} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <img src="/brand/icon-logo.svg" alt="" className="h-full w-full object-cover" />
                   )}
                 </div>
-                <div className="min-w-0 pb-1 text-white drop-shadow">
-                  <h1 className="truncate text-2xl font-bold tracking-tight sm:text-3xl">
+                <div className="min-w-0 text-white drop-shadow">
+                  <h1 className="max-w-[17rem] truncate text-xl font-bold tracking-tight sm:max-w-[34rem] sm:text-3xl">
                     {parishInfo.parishName || 'PASCOM Stream View'}
                   </h1>
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-white/85">
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/85 sm:text-sm">
                     {parishInfo.parishCity ? (
                       <span className="inline-flex items-center gap-1.5">
-                        <MapPin className="h-4 w-4" />
+                        <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         {parishInfo.parishCity}
                       </span>
                     ) : null}
                     {parishInfo.parishProfile ? (
                       <span className="inline-flex items-center gap-1.5">
-                        <Church className="h-4 w-4" />
+                        <Church className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         {parishInfo.parishProfile}
                       </span>
                     ) : null}
                   </div>
-                  {parishSocialLinks.length > 0 ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {parishSocialLinks.map(({ key, label, Icon, url }) => (
-                        <a
-                          key={key}
-                          href={url}
-                          target="_blank"
-                          rel="noreferrer"
-                          aria-label={label}
-                          title={label}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/25 transition hover:bg-white hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                        >
-                          <Icon className="h-4 w-4" />
-                        </a>
-                      ))}
-                    </div>
-                  ) : null}
                 </div>
               </div>
+              {parishSocialLinks.length > 0 ? (
+                <div className="absolute bottom-4 right-4 flex max-w-[44%] flex-wrap justify-end gap-2 sm:bottom-6 sm:right-6 sm:max-w-xs">
+                  {parishSocialLinks.map(({ key, label, Icon, url }) => (
+                    <a
+                      key={key}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label={label}
+                      title={label}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/25 transition hover:bg-white hover:text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white sm:h-9 sm:w-9"
+                    >
+                      <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    </a>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
         </section>
@@ -374,13 +380,13 @@ export default function PublicDashboardPage() {
               <div className="text-sm text-muted-foreground">Nenhum patrocinador encontrado para essa busca.</div>
             ) : (
               <div className="space-y-4">
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {paginatedAdvertisers.map((ad) => (
                     <Link key={ad.id} href={`/anunciantes/${ad.id}`}>
                       <Card className="h-full transition-colors hover:border-primary/50">
                         <CardContent className="flex items-center gap-3 p-4">
                           <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-black">
-                            <Media ad={ad} className="h-full w-full object-contain" />
+                            <Media ad={ad} className="h-full w-full object-contain" staticFrame />
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="truncate font-semibold">{ad.name}</div>

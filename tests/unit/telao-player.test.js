@@ -10,12 +10,15 @@ describe('telao player helpers', () => {
 
   it('builds a stable signature from ad fields that affect display', () => {
     const signature = buildAdsSignature([
-      { id: 'a', updatedAt: '1', duration: 10, active: true, src: 'a.webp', type: 'NORMAL', ignored: 'x' },
+      { id: 'a', updatedAt: '1', duration: 10, active: true, src: 'a.webp', type: 'NORMAL', mediaType: 'image', ignored: 'x' },
     ])
 
-    expect(signature).toBe(JSON.stringify([
-      { id: 'a', updatedAt: '1', duration: 10, active: true, src: 'a.webp', type: 'NORMAL' },
-    ]))
+    expect(signature).toBe(JSON.stringify({
+      ads: [
+        { id: 'a', updatedAt: '1', duration: 10, active: true, src: 'a.webp', type: 'NORMAL', mediaType: 'image' },
+      ],
+      settings: null,
+    }))
   })
 
   it('shuffles without mutating the source array', () => {

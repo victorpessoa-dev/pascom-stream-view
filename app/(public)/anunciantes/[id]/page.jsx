@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PaginationControls from '@/components/shared/pagination-controls'
 import AppFooter from '@/components/shared/app-footer'
+import LoadingState from '@/components/shared/loading-state'
 import PageContainer from '@/components/layout/page-container'
 import { TimeSeriesLineChart } from '@/components/shared/simple-charts'
 import { downloadWorkbook } from '@/lib/export/simple-xlsx'
@@ -154,7 +155,7 @@ export default function AnuncianteDetalhePage() {
   )
 
   if (loading) {
-    return <div className="min-h-screen bg-background p-8 text-sm text-muted-foreground">Carregando anunciante...</div>
+    return <LoadingState fullScreen label="Carregando anunciante..." />
   }
 
   if (error || !advertiser) {
@@ -293,8 +294,8 @@ export default function AnuncianteDetalhePage() {
           <CardHeader>
             <CardTitle>Relatório visual</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-6 lg:grid-cols-2">
-            <div className="space-y-3">
+          <CardContent className="grid min-w-0 gap-6 overflow-hidden lg:grid-cols-2">
+            <div className="min-w-0 space-y-3">
               <div>
                 <h3 className="text-sm font-medium">Exibições por dia</h3>
                 <p className="text-xs text-muted-foreground">Quantidade de vezes em que o patrocinador apareceu.</p>
@@ -306,7 +307,7 @@ export default function AnuncianteDetalhePage() {
               />
             </div>
 
-            <div className="space-y-3">
+            <div className="min-w-0 space-y-3">
               <div>
                 <h3 className="text-sm font-medium">Tempo exibido por dia</h3>
                 <p className="text-xs text-muted-foreground">Soma do tempo registrado em cada exibição.</p>

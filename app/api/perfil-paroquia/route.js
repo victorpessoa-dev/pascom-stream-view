@@ -1,4 +1,5 @@
-﻿import { NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
+import { NO_STORE_HEADERS } from '@/lib/utils/http'
 import { createSupabaseServerClient } from '@/services/supabase/server'
 
 const emptyProfile = {
@@ -21,17 +22,20 @@ export async function GET() {
     const { data, error } = await supabase.rpc('get_public_parish_profile')
     if (error) throw error
 
-    return NextResponse.json({
-      ...emptyProfile,
-      ...(data || {}),
-    })
+    return NextResponse.json(
+      {
+        ...emptyProfile,
+        ...(data || {}),
+      },
+      { headers: NO_STORE_HEADERS }
+    )
   } catch (error) {
     return NextResponse.json(
       {
         ...emptyProfile,
         error: error instanceof Error ? error.message : 'Falha ao carregar perfil da paróquia',
       },
-      { status: 200 }
+      { status: 200, headers: NO_STORE_HEADERS }
     )
   }
 }

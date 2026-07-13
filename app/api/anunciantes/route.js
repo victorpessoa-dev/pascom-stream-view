@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSponsorDirectoryPayload } from '@/lib/services/sponsors'
+import { NO_STORE_HEADERS } from '@/lib/utils/http'
 import { createSupabaseServerClient } from '@/services/supabase/server'
 
 export async function GET() {
@@ -7,11 +8,11 @@ export async function GET() {
     const supabase = await createSupabaseServerClient()
     const payload = await getSponsorDirectoryPayload(supabase)
 
-    return NextResponse.json(payload)
+    return NextResponse.json(payload, { headers: NO_STORE_HEADERS })
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Falha ao carregar anunciantes' },
-      { status: 500 }
+      { status: 500, headers: NO_STORE_HEADERS }
     )
   }
 }

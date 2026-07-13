@@ -177,6 +177,25 @@ describe('sponsor services', () => {
     expect(sponsor).toMatchObject({ id: 'sponsor-1', sourceType: 'supabase' })
   })
 
+  it('allows normal sponsors to save video media', async () => {
+    const { client, calls } = createSupabaseTableMock()
+
+    await createSponsorForAdmin(client, {
+      name: 'Empresa Video',
+      type: 'NORMAL',
+      src: 'https://cdn.example/video.mp4',
+      mediaType: 'video',
+      duration: 12,
+    })
+
+    expect(calls).toContainEqual(['insert', expect.objectContaining({
+      kind: 'NORMAL',
+      media_url: 'https://cdn.example/video.mp4',
+      media_type: 'video',
+      image_url: null,
+    })])
+  })
+
   it('updates sponsor records by id with merged edit values', async () => {
     const { client, calls } = createSupabaseTableMock()
 

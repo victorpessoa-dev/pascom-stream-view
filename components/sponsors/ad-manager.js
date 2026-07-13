@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { useStore } from '@/lib/store/store'
 import { uploadMedia } from '@/services/supabase/upload'
 import { Button } from '@/components/ui/button'
+import LoadingState from '@/components/shared/loading-state'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -58,7 +59,7 @@ function formatDateTime(value) {
 }
 
 export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 } }) {
-  const { ads, createAd, updateAd, deleteAd, isLoaded, sponsorSettings, updateSponsorSettings } = useStore()
+  const { ads, createAd, updateAd, deleteAd, error, isLoaded, sponsorSettings, updateSponsorSettings } = useStore()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editingAd, setEditingAd] = useState(null)
@@ -66,6 +67,8 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
   const [searchTerm, setSearchTerm] = useState('')
   const [adPendingDelete, setAdPendingDelete] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
+  const [savingAd, setSavingAd] = useState(false)
+  const [uploadingMedia, setUploadingMedia] = useState(false)
 
   const orderedAds = useMemo(
     () =>
@@ -94,6 +97,10 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
     const start = (currentPage - 1) * ADMIN_PAGE_SIZE
     return filteredAds.slice(start, start + ADMIN_PAGE_SIZE)
   }, [currentPage, filteredAds])
+  const activeSponsorCounts = useMemo(() => ({
+    NORMAL: ads.filter((ad) => ad.active && ad.type === 'NORMAL').length,
+    MASTER: ads.filter((ad) => ad.active && ad.type === 'MASTER').length,
+  }), [ads])
 
   useEffect(() => {
     setCurrentPage(1)
@@ -105,6 +112,35 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
     }
   }, [currentPage, totalPages])
 
+  useEffect(() => {
+    if (error) toast.error(error)
+  }, [error])
+
+  useEffect(() => {
+    if (!isLoaded || !sponsorSettings.metricsEnabled) return
+
+    const nextPaused = {
+      NORMAL: activeSponsorCounts.NORMAL === 0 || Boolean(sponsorSettings.metricsPaused?.NORMAL),
+      MASTER: activeSponsorCounts.MASTER === 0 || Boolean(sponsorSettings.metricsPaused?.MASTER),
+    }
+    const nextEnabled = activeSponsorCounts.NORMAL > 0 || activeSponsorCounts.MASTER > 0
+      ? !(nextPaused.NORMAL && nextPaused.MASTER)
+      : false
+
+    if (
+      nextEnabled !== sponsorSettings.metricsEnabled ||
+      nextPaused.NORMAL !== Boolean(sponsorSettings.metricsPaused?.NORMAL) ||
+      nextPaused.MASTER !== Boolean(sponsorSettings.metricsPaused?.MASTER)
+    ) {
+      updateSponsorSettings({
+        metricsEnabled: nextEnabled,
+        metricsPaused: nextPaused,
+      }).catch((requestError) => {
+        toast.error(requestError instanceof Error ? requestError.message : 'Erro ao atualizar contador')
+      })
+    }
+  }, [activeSponsorCounts.MASTER, activeSponsorCounts.NORMAL, isLoaded, sponsorSettings.metricsEnabled, sponsorSettings.metricsPaused, updateSponsorSettings])
+
   const getTypeDuration = useCallback(
     (type) => (type === 'MASTER' ? defaultDurations.MASTER : defaultDurations.NORMAL),
     [defaultDurations.MASTER, defaultDurations.NORMAL]
@@ -115,8 +151,14 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
 
     try {
       const url = await uploadMedia(file, 'sponsors')
-      setter((prev) => ({ ...prev, src: url, sourceType: 'upload' }))
-      toast.success('Upload enviado')
+      const uploadedMediaType = file.type?.startsWith('video/') ? 'video' : 'image'
+      setter((prev) => ({
+        ...prev,
+        src: url,
+        sourceType: 'upload',
+        mediaType: uploadedMediaType,
+      }))
+      toast.success(uploadedMediaType === 'video' ? 'Vídeo enviado' : 'Imagem enviada')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao enviar arquivo')
     }
@@ -124,9 +166,42 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
 
   const normalizeAd = useCallback((ad) => ({
     ...ad,
-    mediaType: ad.type === 'NORMAL' ? 'image' : ad.mediaType,
+    mediaType: ad.mediaType === 'video' ? 'video' : 'image',
     duration: Math.max(3, Number(ad.duration) || 10),
   }), [])
+
+  const updateMetricsEnabled = useCallback(async (checked) => {
+    if (checked && activeSponsorCounts.NORMAL === 0 && activeSponsorCounts.MASTER === 0) {
+      throw new Error('Ative pelo menos um patrocinador NORMAL ou MASTER antes de ligar o contador')
+    }
+
+    await updateSponsorSettings({
+      metricsEnabled: checked,
+      metricsPaused: checked
+        ? {
+          NORMAL: activeSponsorCounts.NORMAL === 0,
+          MASTER: activeSponsorCounts.MASTER === 0,
+        }
+        : sponsorSettings.metricsPaused,
+    })
+  }, [activeSponsorCounts.MASTER, activeSponsorCounts.NORMAL, sponsorSettings.metricsPaused, updateSponsorSettings])
+
+  const updateMetricsPause = useCallback(async (kind, paused) => {
+    if (!paused && activeSponsorCounts[kind] === 0) {
+      throw new Error(`Nao ha patrocinador ${kind} ativo para contar`)
+    }
+
+    const nextPaused = {
+      NORMAL: activeSponsorCounts.NORMAL === 0 || Boolean(sponsorSettings.metricsPaused?.NORMAL),
+      MASTER: activeSponsorCounts.MASTER === 0 || Boolean(sponsorSettings.metricsPaused?.MASTER),
+      [kind]: paused,
+    }
+
+    await updateSponsorSettings({
+      metricsEnabled: (activeSponsorCounts.NORMAL > 0 || activeSponsorCounts.MASTER > 0) && !(nextPaused.NORMAL && nextPaused.MASTER),
+      metricsPaused: nextPaused,
+    })
+  }, [activeSponsorCounts, sponsorSettings.metricsPaused, updateSponsorSettings])
 
   const handleCreateAd = async () => {
     const ad = normalizeAd(newAd)
@@ -140,6 +215,12 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
       return
     }
 
+    if (uploadingMedia) {
+      toast.error('Aguarde o upload terminar antes de salvar')
+      return
+    }
+
+    setSavingAd(true)
     try {
       await createAd(ad)
       toast.success(`Patrocínio "${ad.name}" criado`)
@@ -147,12 +228,20 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
       setNewAd(createEmptyAd(defaultDurations))
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao criar patrocínio')
+    } finally {
+      setSavingAd(false)
     }
   }
 
   const handleEditAd = async () => {
     if (!editingAd) return
 
+    if (uploadingMedia) {
+      toast.error('Aguarde o upload terminar antes de salvar')
+      return
+    }
+
+    setSavingAd(true)
     try {
       await updateAd(editingAd.id, normalizeAd(editingAd))
       toast.success('Patrocínio atualizado')
@@ -160,6 +249,8 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
       setEditingAd(null)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao atualizar patrocínio')
+    } finally {
+      setSavingAd(false)
     }
   }
 
@@ -181,14 +272,7 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
   }, [])
 
   if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Carregando patrocínios...</p>
-        </div>
-      </div>
-    )
+    return <LoadingState label="Carregando patrocínios..." />
   }
 
   return (
@@ -198,10 +282,20 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
         onSearchChange={(event) => setSearchTerm(event.target.value)}
         onCopyPublicUrl={copyPublicUrl}
         metricsEnabled={sponsorSettings.metricsEnabled}
+        metricsPaused={sponsorSettings.metricsPaused}
+        activeCounts={activeSponsorCounts}
         onMetricsToggle={async (checked) => {
           try {
-            await updateSponsorSettings({ metricsEnabled: checked })
+            await updateMetricsEnabled(checked)
             toast.success(checked ? 'Contador do telão ativado' : 'Contador do telão desativado')
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : 'Erro ao salvar configuração')
+          }
+        }}
+        onMetricsPauseToggle={async (kind, paused) => {
+          try {
+            await updateMetricsPause(kind, paused)
+            toast.success(paused ? `Contador ${kind} pausado` : `Contador ${kind} retomado`)
           } catch (error) {
             toast.error(error instanceof Error ? error.message : 'Erro ao salvar configuração')
           }
@@ -229,10 +323,12 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
               O tipo normal aparece em <code>/telao</code>. O tipo master aparece em <code>/telao-master</code>.
             </DialogDescription>
           </DialogHeader>
-          <SponsorForm ad={newAd} setAd={setNewAd} getTypeDuration={getTypeDuration} onUpload={readUpload} />
+          <SponsorForm ad={newAd} setAd={setNewAd} getTypeDuration={getTypeDuration} onUpload={readUpload} onUploadStateChange={setUploadingMedia} />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreateAd}>Criar</Button>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={savingAd || uploadingMedia}>Cancelar</Button>
+            <Button onClick={handleCreateAd} disabled={savingAd || uploadingMedia}>
+              {savingAd ? 'Salvando...' : 'Criar'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -415,10 +511,12 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
             <DialogTitle>Editar patrocínio</DialogTitle>
             <DialogDescription>Atualize mídia, link, tipo e tempo de exibição.</DialogDescription>
           </DialogHeader>
-          {editingAd ? <SponsorForm ad={editingAd} setAd={setEditingAd} getTypeDuration={getTypeDuration} onUpload={readUpload} /> : null}
+          {editingAd ? <SponsorForm ad={editingAd} setAd={setEditingAd} getTypeDuration={getTypeDuration} onUpload={readUpload} onUploadStateChange={setUploadingMedia} /> : null}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleEditAd}>Salvar</Button>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={savingAd || uploadingMedia}>Cancelar</Button>
+            <Button onClick={handleEditAd} disabled={savingAd || uploadingMedia}>
+              {savingAd ? 'Salvando...' : 'Salvar'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

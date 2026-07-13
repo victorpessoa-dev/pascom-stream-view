@@ -15,14 +15,15 @@ drop policy if exists "profiles_insert_own" on public.profiles;
 create policy "profiles_insert_own"
 on public.profiles
 for insert
-with check (auth.uid() = id);
+with check (auth.uid() = id and is_admin = false);
 
 drop policy if exists "profiles_update_own" on public.profiles;
-create policy "profiles_update_own"
+drop policy if exists "profiles_admin_update" on public.profiles;
+create policy "profiles_admin_update"
 on public.profiles
 for update
-using (auth.uid() = id)
-with check (auth.uid() = id);
+using (public.is_admin())
+with check (public.is_admin());
 
 drop policy if exists "sponsors_admin_full" on public.sponsors;
 create policy "sponsors_admin_full"

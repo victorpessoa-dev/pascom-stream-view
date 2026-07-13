@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { Image as ImageIcon, Video, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -45,7 +46,25 @@ export function TypeBadge({ ad }) {
   )
 }
 
-export function SponsorForm({ ad, setAd, getTypeDuration, onUpload }) {
+export function SponsorForm({ ad, setAd, getTypeDuration, onUpload, onUploadStateChange }) {
+  const [uploading, setUploading] = useState(false)
+  const hasUploadedMedia = ad.sourceType === 'upload' && Boolean(ad.src)
+
+  const handleUpload = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploading(true)
+    onUploadStateChange?.(true)
+    try {
+      await onUpload(file, setAd)
+    } finally {
+      setUploading(false)
+      onUploadStateChange?.(false)
+      event.target.value = ''
+    }
+  }
+
   return (
     <div className="space-y-5 py-4">
       <div className="space-y-2">
@@ -63,7 +82,6 @@ export function SponsorForm({ ad, setAd, getTypeDuration, onUpload }) {
                 ...prev,
                 type: value,
                 duration: getTypeDuration(value),
-                mediaType: value === 'NORMAL' ? 'image' : prev.mediaType,
               }))
             }
           >
@@ -76,7 +94,7 @@ export function SponsorForm({ ad, setAd, getTypeDuration, onUpload }) {
         </div>
         <div className="space-y-2">
           <Label>Mídia</Label>
-          <Select value={ad.mediaType} disabled={ad.type === 'NORMAL'} onValueChange={(value) => setAd((prev) => ({ ...prev, mediaType: value }))}>
+          <Select value={ad.mediaType} onValueChange={(value) => setAd((prev) => ({ ...prev, mediaType: value }))}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="image">Imagem</SelectItem>
@@ -90,9 +108,15 @@ export function SponsorForm({ ad, setAd, getTypeDuration, onUpload }) {
         <Label>Link da mídia</Label>
         <Input
           placeholder={ad.mediaType === 'video' ? 'https://exemplo.com/video.mp4' : 'https://exemplo.com/imagem.png'}
-          value={ad.sourceType === 'upload' ? '' : ad.src}
+          value={ad.src || ''}
+          readOnly={hasUploadedMedia}
           onChange={(e) => setAd((prev) => ({ ...prev, src: e.target.value, sourceType: 'link' }))}
         />
+        {hasUploadedMedia ? (
+          <p className="text-xs text-muted-foreground">
+            Upload anexado. Clique em Salvar para gravar esta midia no patrocinio.
+          </p>
+        ) : null}
       </div>
 
       <div className="space-y-2">
@@ -106,7 +130,8 @@ export function SponsorForm({ ad, setAd, getTypeDuration, onUpload }) {
 
       <div className="space-y-2">
         <Label>Upload</Label>
-        <Input type="file" accept={ad.mediaType === 'video' ? 'video/webm,video/mp4' : 'image/*'} onChange={(event) => onUpload(event.target.files?.[0], setAd)} />
+        <Input type="file" accept="image/gif,image/jpeg,image/png,image/webp,video/webm,video/mp4" disabled={uploading} onChange={handleUpload} />
+        {uploading ? <p className="text-xs text-muted-foreground">Enviando arquivo...</p> : null}
       </div>
 
       <div className="space-y-2">

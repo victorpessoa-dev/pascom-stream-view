@@ -23,7 +23,8 @@ values (
       "parishFacebookUrl": "",
       "parishYoutubeUrl": "",
       "parishWhatsappUrl": "",
-      "parishWebsiteUrl": ""
+      "parishWebsiteUrl": "",
+      "parishSocialLinks": []
     }
   }'::jsonb
 )
@@ -54,7 +55,8 @@ set value = (value - 'overlay' - 'advanced') || jsonb_build_object(
     "parishFacebookUrl": "",
     "parishYoutubeUrl": "",
     "parishWhatsappUrl": "",
-    "parishWebsiteUrl": ""
+    "parishWebsiteUrl": "",
+    "parishSocialLinks": []
   }'::jsonb || (
     coalesce(value->'appearance', '{}'::jsonb)
       - 'accentColor'

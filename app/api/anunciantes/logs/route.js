@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { checkRateLimit, getClientIp } from '@/lib/cache/rate-limit'
+import { NO_STORE_HEADERS } from '@/lib/utils/http'
 import { createSupabaseServerClient } from '@/services/supabase/server'
 
 const logSchema = z.object({
@@ -41,7 +42,7 @@ export async function POST(request) {
     if (!rate.allowed) {
       return NextResponse.json(
         { error: 'Muitas requisições. Tente novamente em instantes.' },
-        { status: 429 }
+        { status: 429, headers: NO_STORE_HEADERS }
       )
     }
 
@@ -60,18 +61,18 @@ export async function POST(request) {
 
     if (error) throw error
 
-    return NextResponse.json({ ok: true, processed: Number(processed) || 0 })
+    return NextResponse.json({ ok: true, processed: Number(processed) || 0 }, { headers: NO_STORE_HEADERS })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Payload inválido', issues: error.issues },
-        { status: 400 }
+        { status: 400, headers: NO_STORE_HEADERS }
       )
     }
 
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Falha ao registrar exibição' },
-      { status: 500 }
+      { status: 500, headers: NO_STORE_HEADERS }
     )
   }
 }

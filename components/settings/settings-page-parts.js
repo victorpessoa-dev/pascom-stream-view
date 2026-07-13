@@ -168,41 +168,43 @@ export function BrandPreview({ parishName, parishLogoUrl, parishCoverUrl = '', p
     <div className="rounded-2xl border border-border bg-card/50 p-4">
       <div className="text-sm font-medium">Prévia da marca</div>
       <div className="mt-4 overflow-hidden rounded-xl border border-sidebar-border bg-sidebar">
-        <div className="relative min-h-40 bg-sidebar-accent">
+        <div className="relative min-h-52 bg-sidebar-accent sm:min-h-60">
           {parishCoverUrl ? (
             <img src={parishCoverUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
           ) : (
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.18),_transparent_34%),linear-gradient(135deg,_rgba(59,130,246,0.30),_rgba(15,23,42,0.7))]" />
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 flex items-end gap-3 p-3">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/70 bg-primary">
-              <img src={parishLogoUrl || '/brand/icon-logo.svg'} alt="" className="h-full w-full object-cover" />
-            </div>
-            <div className="min-w-0 pb-1 text-white drop-shadow">
-              <div className="truncate text-sm font-semibold tracking-tight">
-              {parishName || 'Nome da paróquia'}
+          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-4 sm:p-5">
+            <div className="flex min-w-0 items-center gap-3 pr-12 text-left sm:gap-4 sm:pr-32">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/70 bg-primary sm:h-20 sm:w-20">
+                <img src={parishLogoUrl || '/brand/icon-logo.svg'} alt="" className="h-full w-full object-cover" />
               </div>
-              {(parishCity || parishProfile) ? (
-                <div className="mt-1 truncate text-xs text-white/75">
-                  {[parishCity, parishProfile].filter(Boolean).join(' · ')}
+              <div className="min-w-0 text-white drop-shadow">
+                <div className="max-w-[16rem] truncate text-sm font-semibold tracking-tight sm:max-w-[34rem] sm:text-lg">
+                  {parishName || 'Nome da paróquia'}
                 </div>
-              ) : null}
-              {visibleSocialLinks.length > 0 ? (
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {visibleSocialLinks.map(({ key, label }) => {
-                    const Icon = getSocialIcon(label) || Globe
-
-                    return (
-                      <span key={key} className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/25">
-                        <Icon className="h-3.5 w-3.5" />
-                        <span className="sr-only">{label || 'Link'}</span>
-                      </span>
-                    )
-                  })}
-                </div>
-              ) : null}
+                {(parishCity || parishProfile) ? (
+                  <div className="mt-1 truncate text-xs text-white/75">
+                    {[parishCity, parishProfile].filter(Boolean).join(' · ')}
+                  </div>
+                ) : null}
+              </div>
             </div>
+            {visibleSocialLinks.length > 0 ? (
+              <div className="absolute bottom-4 right-4 flex max-w-[44%] flex-wrap justify-end gap-1.5 sm:bottom-5 sm:right-5 sm:max-w-xs">
+                {visibleSocialLinks.map(({ key, label }) => {
+                  const Icon = getSocialIcon(label) || Globe
+
+                  return (
+                    <span key={key} className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/25 sm:h-8 sm:w-8">
+                      <Icon className="h-3.5 w-3.5" />
+                      <span className="sr-only">{label || 'Link'}</span>
+                    </span>
+                  )
+                })}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

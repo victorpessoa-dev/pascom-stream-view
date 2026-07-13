@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Loader2 } from 'lucide-react'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { createSupabaseBrowserClient } from '@/services/supabase/browser'
 import { getSafeRedirectPath, signInWithPasswordFlow } from '@/lib/services/auth'
 import { Button } from '@/components/ui/button'
@@ -18,6 +18,7 @@ function LoginForm() {
 
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
+  const [showPassword, setShowPassword] = React.useState(false)
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState(null)
 
@@ -47,9 +48,9 @@ function LoginForm() {
     <div className="flex min-h-screen flex-col bg-background">
       <div className="flex flex-1 items-center justify-center p-6">
         <Card className="w-full max-w-md">
-          <CardHeader className="space-y-4">
-            <img src="/brand/emblema-16-9.svg" alt="PASCOM Stream View" className="h-14 w-fit object-contain align-center" />
-            <CardTitle className='text-center '>Acessar Painel Administrativo</CardTitle>
+          <CardHeader className="space-y-4 text-center">
+            <img src="/brand/emblema-16-9.svg" alt="PASCOM Stream View" className="mx-auto h-14 w-fit object-contain" />
+            <CardTitle>Acessar painel administrativo</CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={onSubmit} className="space-y-4">
@@ -68,15 +69,26 @@ function LoginForm() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  aria-invalid={Boolean(error)}
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    aria-invalid={Boolean(error)}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
 
               {error ? (

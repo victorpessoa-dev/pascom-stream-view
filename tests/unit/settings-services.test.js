@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { mergeSponsorSettings } from '@/lib/mappers/settings'
 import { getTelaoDefaultDurations, saveAdminSettings } from '@/lib/services/settings'
 
 function createSettingsSupabaseMock(initialValue) {
@@ -52,6 +53,21 @@ describe('settings services', () => {
     expect(supabase.calls[0]).toMatchObject({
       key: 'admin_settings',
       value: saved,
+    })
+  })
+
+  it('normalizes paused sponsor counters by screen', () => {
+    expect(mergeSponsorSettings({
+      metricsEnabled: true,
+      metricsPaused: {
+        NORMAL: true,
+      },
+    })).toMatchObject({
+      metricsEnabled: true,
+      metricsPaused: {
+        NORMAL: true,
+        MASTER: false,
+      },
     })
   })
 })

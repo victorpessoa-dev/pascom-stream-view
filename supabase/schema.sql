@@ -61,6 +61,10 @@ create table if not exists public.sponsors (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint sponsors_duration_positive check (duration_seconds > 0),
+  constraint sponsors_media_type_matches_url check (
+    media_type in ('image', 'video')
+    and length(trim(coalesce(media_url, image_url, ''))) > 0
+  ),
   constraint sponsors_name_not_blank check (length(trim(name)) > 0)
 );
 
@@ -237,6 +241,10 @@ values (
   'sponsor_settings',
   '{
     "metricsEnabled": false,
+    "metricsPaused": {
+      "NORMAL": false,
+      "MASTER": false
+    },
     "designs": {
       "MASTER": {
         "enabled": false,
@@ -267,6 +275,11 @@ update public.app_settings
 set value = jsonb_build_object(
   'metricsEnabled',
   coalesce((value->>'metricsEnabled')::boolean, false),
+  'metricsPaused',
+  '{
+    "NORMAL": false,
+    "MASTER": false
+  }'::jsonb || coalesce(value->'metricsPaused', '{}'::jsonb),
   'designs',
   jsonb_build_object(
     'MASTER',
@@ -384,14 +397,15 @@ drop policy if exists "profiles_insert_own" on public.profiles;
 create policy "profiles_insert_own"
 on public.profiles
 for insert
-with check (auth.uid() = id);
+with check (auth.uid() = id and is_admin = false);
 
 drop policy if exists "profiles_update_own" on public.profiles;
-create policy "profiles_update_own"
+drop policy if exists "profiles_admin_update" on public.profiles;
+create policy "profiles_admin_update"
 on public.profiles
 for update
-using (auth.uid() = id)
-with check (auth.uid() = id);
+using (public.is_admin())
+with check (public.is_admin());
 
 -- =========================================================
 -- POLICIES: ADMIN
@@ -726,6 +740,7 @@ declare
   impression_id uuid;
   settings jsonb;
   sponsor_is_active boolean;
+  source_kind text;
   safe_displayed_at timestamptz := coalesce(displayed_at_arg, now());
   safe_duration integer := least(greatest(coalesce(duration_seconds_arg, 0), 0), 3600);
   safe_source text := coalesce(nullif(trim(source_arg), ''), 'telao');
@@ -744,6 +759,12 @@ begin
   end if;
 
   if safe_source not in ('telao', 'telao-master') then
+    return null;
+  end if;
+
+  source_kind := case when safe_source = 'telao-master' then 'MASTER' else 'NORMAL' end;
+
+  if coalesce((settings #>> array['metricsPaused', source_kind])::boolean, false) is true then
     return null;
   end if;
 

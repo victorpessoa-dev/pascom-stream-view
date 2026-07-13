@@ -7,7 +7,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
-import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Accordion } from '@/components/ui/accordion'
 import {
@@ -149,6 +148,15 @@ export function AppearanceSettingsSection({ settings, updateSettings, onUploadPa
       extra: extraLinks,
     },
   }
+  const baseSocialLinks = [
+    { key: 'parishInstagramUrl', label: 'Instagram', placeholder: 'https://instagram.com/sua_paroquia' },
+    { key: 'parishFacebookUrl', label: 'Facebook', placeholder: 'https://facebook.com/sua_paroquia' },
+    { key: 'parishYoutubeUrl', label: 'YouTube', placeholder: 'https://youtube.com/@sua_paroquia' },
+    { key: 'parishWhatsappUrl', label: 'WhatsApp', placeholder: 'https://wa.me/5511999999999' },
+    { key: 'parishWebsiteUrl', label: 'Site', placeholder: 'https://sua-paroquia.com.br' },
+  ]
+  const activeBaseSocialLinks = baseSocialLinks.filter((item) => String(settings.appearance[item.key] || '').trim())
+  const hasSocialLinks = activeBaseSocialLinks.length > 0 || extraLinks.length > 0
 
   const updateExtraLink = (index, key, value) => {
     updateSettings(
@@ -170,18 +178,23 @@ export function AppearanceSettingsSection({ settings, updateSettings, onUploadPa
     <Card>
       <CardHeader>
         <CardTitle>Visual público</CardTitle>
-        <CardDescription>Organize identidade, redes sociais e preferências visuais.</CardDescription>
+        <CardDescription>Organize identidade, dados da paróquia e redes sociais.</CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="marca" className="space-y-4">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="marca">Marca</TabsTrigger>
-            <TabsTrigger value="redes">Redes</TabsTrigger>
+        <Tabs defaultValue="perfil" className="space-y-4">
+          <TabsList className="grid w-full max-w-xs grid-cols-1">
+            <TabsTrigger value="perfil">Perfil público</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="marca" className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-              <div className="space-y-6">
+          <TabsContent value="perfil" className="space-y-6">
+            <BrandPreview {...previewProps} />
+
+            <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+              <div className="space-y-6 rounded-lg border border-border p-4">
+                <div>
+                  <Label>Dados da paróquia</Label>
+                  <p className="text-sm text-muted-foreground">Informações exibidas sobre a capa da página pública.</p>
+                </div>
                 <div className="space-y-2">
                   <Label>Nome da paróquia</Label>
                   <Input
@@ -208,100 +221,86 @@ export function AppearanceSettingsSection({ settings, updateSettings, onUploadPa
                     />
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Logo da paróquia</Label>
-                  <Input
-                    value={settings.appearance.parishLogoUrl}
-                    onChange={(e) => updateSettings('appearance', 'parishLogoUrl', e.target.value)}
-                    placeholder="https://exemplo.com/logo.png"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Upload da logo</Label>
-                  <Input type="file" accept="image/*" onChange={(event) => onUploadParishLogo(event.target.files?.[0])} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Capa pública</Label>
-                  <Input
-                    value={settings.appearance.parishCoverUrl}
-                    onChange={(e) => updateSettings('appearance', 'parishCoverUrl', e.target.value)}
-                    placeholder="https://exemplo.com/capa.png"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Upload da capa</Label>
-                  <Input type="file" accept="image/*" onChange={(event) => onUploadParishCover(event.target.files?.[0])} />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Logo da paróquia</Label>
+                    <Input
+                      value={settings.appearance.parishLogoUrl}
+                      onChange={(e) => updateSettings('appearance', 'parishLogoUrl', e.target.value)}
+                      placeholder="https://exemplo.com/logo.png"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Upload da logo</Label>
+                    <Input type="file" accept="image/*" onChange={(event) => onUploadParishLogo(event.target.files?.[0])} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Capa pública</Label>
+                    <Input
+                      value={settings.appearance.parishCoverUrl}
+                      onChange={(e) => updateSettings('appearance', 'parishCoverUrl', e.target.value)}
+                      placeholder="https://exemplo.com/capa.png"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Upload da capa</Label>
+                    <Input type="file" accept="image/*" onChange={(event) => onUploadParishCover(event.target.files?.[0])} />
+                  </div>
                 </div>
               </div>
-              <BrandPreview {...previewProps} />
-            </div>
-          </TabsContent>
 
-          <TabsContent value="redes" className="space-y-6">
-            <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
               <div className="space-y-4 rounded-lg border border-border p-4">
                 <div>
                   <Label>Redes sociais públicas</Label>
-                  <p className="text-sm text-muted-foreground">Links exibidos abaixo do perfil na página pública.</p>
+                  <p className="text-sm text-muted-foreground">Links exibidos no canto inferior da capa pública.</p>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <SocialInput label="Instagram" value={settings.appearance.parishInstagramUrl} onChange={(value) => updateSettings('appearance', 'parishInstagramUrl', value)} placeholder="https://instagram.com/sua_paroquia" />
-                  <SocialInput label="Facebook" value={settings.appearance.parishFacebookUrl} onChange={(value) => updateSettings('appearance', 'parishFacebookUrl', value)} placeholder="https://facebook.com/sua_paroquia" />
-                  <SocialInput label="YouTube" value={settings.appearance.parishYoutubeUrl} onChange={(value) => updateSettings('appearance', 'parishYoutubeUrl', value)} placeholder="https://youtube.com/@sua_paroquia" />
-                  <SocialInput label="WhatsApp" value={settings.appearance.parishWhatsappUrl} onChange={(value) => updateSettings('appearance', 'parishWhatsappUrl', value)} placeholder="https://wa.me/5511999999999" />
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label>Site</Label>
-                    <Input
-                      value={settings.appearance.parishWebsiteUrl}
-                      onChange={(e) => updateSettings('appearance', 'parishWebsiteUrl', e.target.value)}
-                      placeholder="https://sua-paroquia.com.br"
-                    />
-                  </div>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-muted-foreground">
+                    Adicione apenas as redes que deseja exibir.
+                  </p>
+                  <Button type="button" variant="outline" size="sm" onClick={addExtraLink}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Adicionar
+                  </Button>
                 </div>
 
-                <div className="space-y-3 border-t border-border pt-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <Label>Outras redes</Label>
-                      <p className="text-sm text-muted-foreground">Adicione TikTok, Telegram ou qualquer outro link público.</p>
-                    </div>
-                    <Button type="button" variant="outline" size="sm" onClick={addExtraLink}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Adicionar
-                    </Button>
+                {!hasSocialLinks ? (
+                  <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                    Nenhuma rede social adicionada.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {activeBaseSocialLinks.map((item) => (
+                      <div key={item.key} className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[0.8fr_1.2fr_auto]">
+                        <Input value={item.label} disabled aria-label="Rede social" />
+                        <Input
+                          value={settings.appearance[item.key] || ''}
+                          onChange={(e) => updateSettings('appearance', item.key, e.target.value)}
+                          placeholder={item.placeholder}
+                        />
+                        <Button type="button" variant="outline" size="icon" onClick={() => updateSettings('appearance', item.key, '')} aria-label="Remover rede social">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {extraLinks.map((item, index) => (
+                      <div key={index} className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[0.8fr_1.2fr_auto]">
+                        <Input value={item.label || ''} onChange={(e) => updateExtraLink(index, 'label', e.target.value)} placeholder="Nome da rede" />
+                        <Input value={item.url || ''} onChange={(e) => updateExtraLink(index, 'url', e.target.value)} placeholder="https://..." />
+                        <Button type="button" variant="outline" size="icon" onClick={() => removeExtraLink(index)} aria-label="Remover rede social">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
-                  {extraLinks.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhuma rede extra adicionada.</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {extraLinks.map((item, index) => (
-                        <div key={index} className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[0.8fr_1.2fr_auto]">
-                          <Input value={item.label || ''} onChange={(e) => updateExtraLink(index, 'label', e.target.value)} placeholder="Nome da rede" />
-                          <Input value={item.url || ''} onChange={(e) => updateExtraLink(index, 'url', e.target.value)} placeholder="https://..." />
-                          <Button type="button" variant="outline" size="icon" onClick={() => removeExtraLink(index)} aria-label="Remover rede social">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                )}
+
               </div>
-              <BrandPreview {...previewProps} />
             </div>
           </TabsContent>
         </Tabs>
       </CardContent>
     </Card>
-  )
-}
-
-function SocialInput({ label, value, onChange, placeholder }) {
-  return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
-      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
-    </div>
   )
 }
 

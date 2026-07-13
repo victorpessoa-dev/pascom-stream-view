@@ -27,6 +27,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import PaginationControls from '@/components/shared/pagination-controls'
+import LoadingState from '@/components/shared/loading-state'
 import StaticMediaFrame from '@/components/shared/static-media-frame'
 
 const OVERLAY_PAGE_SIZE = 10
@@ -147,14 +148,7 @@ export default function OverlayList({ searchQuery = '' }) {
   }
 
   if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Carregando overlays...</p>
-        </div>
-      </div>
-    )
+    return <LoadingState label="Carregando overlays..." />
   }
 
   if (filteredOverlays.length === 0) {

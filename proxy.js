@@ -60,6 +60,20 @@ export async function proxy(request) {
     return NextResponse.redirect(url)
   }
 
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', data.user.id)
+    .single()
+
+  if (profileError || profile?.is_admin !== true) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set('error', 'admin_required')
+    url.searchParams.set('redirectTo', `${pathname}${search}`)
+    return NextResponse.redirect(url)
+  }
+
   return response
 }
 

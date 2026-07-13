@@ -6,6 +6,10 @@ values (
   'sponsor_settings',
   '{
     "metricsEnabled": false,
+    "metricsPaused": {
+      "NORMAL": false,
+      "MASTER": false
+    },
     "designs": {
       "MASTER": {
         "enabled": false,
@@ -36,6 +40,11 @@ update public.app_settings
 set value = jsonb_build_object(
   'metricsEnabled',
   coalesce((value->>'metricsEnabled')::boolean, false),
+  'metricsPaused',
+  '{
+    "NORMAL": false,
+    "MASTER": false
+  }'::jsonb || coalesce(value->'metricsPaused', '{}'::jsonb),
   'designs',
   jsonb_build_object(
     'MASTER',
@@ -117,7 +126,8 @@ set value = (value - 'overlay' - 'advanced') || jsonb_build_object(
     "parishFacebookUrl": "",
     "parishYoutubeUrl": "",
     "parishWhatsappUrl": "",
-    "parishWebsiteUrl": ""
+    "parishWebsiteUrl": "",
+    "parishSocialLinks": []
   }'::jsonb || (
     coalesce(value->'appearance', '{}'::jsonb)
       - 'accentColor'

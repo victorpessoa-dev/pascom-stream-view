@@ -7,7 +7,7 @@ import { buildAdsSignature, emptyTelaoSettings, shuffleArray } from '@/lib/servi
 
 const ADS_CACHE_KEY = 'pascom:telao:ads-cache'
 const LOG_QUEUE_KEY = 'pascom:telao:log-queue'
-const ADS_REFRESH_INTERVAL_MS = 30 * 1000
+const ADS_REFRESH_INTERVAL_MS = 5 * 60 * 1000
 const LOG_FLUSH_INTERVAL_MS = 2 * 60 * 1000
 export default function TelaoPlayer({ kind = 'NORMAL', backgroundMode = 'auto' }) {
   const [ads, setAds] = useState([])
@@ -88,19 +88,23 @@ export default function TelaoPlayer({ kind = 'NORMAL', backgroundMode = 'auto' }
       if (!response.ok) throw new Error(payload.error || 'Falha ao carregar anuncios')
 
       const filteredAds = (payload.ads || []).filter((ad) => ad.type === kind)
-      const nextSignature = buildAdsSignature(filteredAds)
+      const mergedSettings = payload.sponsorSettings || emptyTelaoSettings
+      const nextSignature = buildAdsSignature(filteredAds, mergedSettings)
       const shouldShuffle = lastSignatureRef.current !== nextSignature
       const shuffledAds = shouldShuffle ? shuffleArray(filteredAds) : filteredAds
-      const mergedSettings = payload.sponsorSettings || emptyTelaoSettings
       const currentAds = adsRef.current
       const currentAd = currentAds[currentIndexRef.current] || currentAds[0] || null
       const preservedIndex = currentAd
         ? shuffledAds.findIndex((ad) => ad.id === currentAd.id)
         : -1
 
-      setAds(shuffledAds)
-      setSponsorSettings(mergedSettings)
-      setCurrentIndex(preservedIndex >= 0 ? preservedIndex : 0)
+      if (shouldShuffle || isOfflineCache) {
+        setAds(shuffledAds)
+        setSponsorSettings(mergedSettings)
+        setCurrentIndex(preservedIndex >= 0 ? preservedIndex : 0)
+        preloadImages(shuffledAds)
+      }
+
       setIsOfflineCache(false)
       lastSignatureRef.current = nextSignature
       localStorage.setItem(
@@ -111,7 +115,6 @@ export default function TelaoPlayer({ kind = 'NORMAL', backgroundMode = 'auto' }
           fetchedAt: payload.fetchedAt || new Date().toISOString(),
         })
       )
-      preloadImages(shuffledAds)
     } catch {
       const cached = JSON.parse(localStorage.getItem(`${ADS_CACHE_KEY}:${kind}`) || 'null')
       if (cached?.ads?.length) {
@@ -119,13 +122,13 @@ export default function TelaoPlayer({ kind = 'NORMAL', backgroundMode = 'auto' }
         setSponsorSettings(cached.sponsorSettings || emptyTelaoSettings)
         setCurrentIndex((prev) => Math.min(prev, Math.max(cached.ads.length - 1, 0)))
         setIsOfflineCache(true)
-        lastSignatureRef.current = buildAdsSignature(cached.ads)
+        lastSignatureRef.current = buildAdsSignature(cached.ads, cached.sponsorSettings || emptyTelaoSettings)
         preloadImages(cached.ads)
       }
     } finally {
       setLoaded(true)
     }
-  }, [kind, preloadImages])
+  }, [isOfflineCache, kind, preloadImages])
 
   const scheduleFastRefresh = useCallback(() => {
     if (refreshTimeoutRef.current) {
@@ -145,7 +148,9 @@ export default function TelaoPlayer({ kind = 'NORMAL', backgroundMode = 'auto' }
     const currentAd = ads[currentIndex] || ads[0]
     const durationSeconds = Math.max(0, Math.round((Date.now() - startTimeRef.current) / 1000))
 
-    if (sponsorSettings.metricsEnabled) {
+    const metricsPaused = Boolean(sponsorSettings.metricsPaused?.[kind])
+
+    if (sponsorSettings.metricsEnabled && !metricsPaused) {
       await registrarExibicao({
         sponsorId: currentAd.id,
         displayedAt: new Date(startTimeRef.current).toISOString(),
@@ -156,7 +161,7 @@ export default function TelaoPlayer({ kind = 'NORMAL', backgroundMode = 'auto' }
 
     setCurrentIndex((prev) => (prev + 1) % ads.length)
     startTimeRef.current = Date.now()
-  }, [ads, currentIndex, kind, registrarExibicao, sponsorSettings.metricsEnabled])
+  }, [ads, currentIndex, kind, registrarExibicao, sponsorSettings.metricsEnabled, sponsorSettings.metricsPaused])
 
   useEffect(() => {
     carregarAnuncios()
@@ -261,23 +266,25 @@ export default function TelaoPlayer({ kind = 'NORMAL', backgroundMode = 'auto' }
 
   return (
     <main className="fixed inset-0 overflow-hidden bg-black select-none" style={{ userSelect: 'none' }}>
-      {showBackground ? (
-        <>
-          <img
-            src={design.backgroundUrl}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover select-none"
-            draggable={false}
-          />
-          <div className="absolute inset-0">
+      <div className="absolute left-1/2 top-1/2 aspect-video w-[min(100vw,177.777vh)] -translate-x-1/2 -translate-y-1/2 overflow-hidden bg-black lg:inset-0 lg:h-full lg:w-full lg:max-w-none lg:translate-x-0 lg:translate-y-0">
+        {showBackground ? (
+          <>
+            <img
+              src={design.backgroundUrl}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover select-none"
+              draggable={false}
+            />
+            <div className="absolute inset-0">
+              <TelaoMedia ad={currentAd} design={design} onVideoEnded={avancarAd} />
+            </div>
+          </>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-black">
             <TelaoMedia ad={currentAd} design={design} onVideoEnded={avancarAd} />
           </div>
-        </>
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center bg-black">
-          <TelaoMedia ad={currentAd} design={design} onVideoEnded={avancarAd} />
-        </div>
-      )}
+        )}
+      </div>
 
       {isOfflineCache ? (
         <div className="absolute right-3 top-3 z-10 rounded-full bg-yellow-500/20 px-3 py-1 text-xs text-yellow-100">

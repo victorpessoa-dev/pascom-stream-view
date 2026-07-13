@@ -184,11 +184,11 @@ export function TimeSeriesLineChart({
   const strokeColor = chartData[0]?.fill || 'var(--chart-1)'
 
   return (
-    <ChartContainer config={{ value: { label: 'Valor', color: strokeColor } }} className="h-[260px] w-full">
-      <LineChart data={chartData} margin={{ left: 0, right: 12, top: 12, bottom: 0 }}>
+    <ChartContainer config={{ value: { label: 'Valor', color: strokeColor } }} className="h-[220px] min-w-0 w-full sm:h-[260px]">
+      <LineChart data={chartData} margin={{ left: -12, right: 4, top: 12, bottom: 0 }}>
         <CartesianGrid vertical={false} strokeDasharray="3 3" />
-        <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} minTickGap={18} />
-        <YAxis tickLine={false} axisLine={false} tickMargin={8} width={58} tickFormatter={(value) => axisFormatter(Number(value) || 0)} />
+        <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} minTickGap={10} interval="preserveEnd" />
+        <YAxis tickLine={false} axisLine={false} tickMargin={4} width={48} tickFormatter={(value) => axisFormatter(Number(value) || 0)} />
         <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel formatter={(value) => valueFormatter(Number(value) || 0)} />} />
         <Line
           type="monotone"

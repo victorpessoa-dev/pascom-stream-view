@@ -30,7 +30,7 @@ export function validateMediaFile(file) {
   }
 
   if (!file.type || !ALLOWED_MEDIA_TYPES.has(file.type)) {
-    throw new Error('Tipo de arquivo não permitido')
+    throw new Error('Tipo de arquivo não permitido. Envie imagem, MP4 ou WebM.')
   }
 }
 
