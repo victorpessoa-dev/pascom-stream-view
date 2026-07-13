@@ -1,34 +1,56 @@
 # Guia do Usuario
 
-## Objetivo
+## Acesso
 
-Explicar os fluxos principais para operadores do sistema.
+Use `/login` para entrar no painel administrativo. O painel nao funciona em mobile; use computador ou tela maior.
 
-## Fluxos
+## Painel do Telao
 
-```mermaid
-flowchart TD
-  A[Login admin] --> B[Painel]
-  B --> C[Gerenciar patrocinadores]
-  B --> D[Criar overlays]
-  C --> E[Abrir /telao ou /telao-master]
-  D --> F[Compartilhar /shared/publicId]
-  E --> G[Registrar metricas se ativado]
-```
+Em `/painel-telao` voce pode:
 
-## Operacao
+- criar patrocinador;
+- enviar imagem, GIF, MP4 ou WebM;
+- editar nome, tipo, link, site e duracao;
+- ativar ou desativar patrocinador;
+- abrir `/telao` e `/telao-master`;
+- copiar URLs publicas;
+- abrir relatorio publico.
 
-- `/login`: entrada administrativa.
-- `/painel-telao`: cadastro, edicao, ativacao e relatorios de patrocinadores.
-- `/overlay`: biblioteca de overlays.
-- `/editor/:id`: editor visual.
-- `/`: pagina publica principal.
-- `/telao`: exibicao normal.
-- `/telao-master`: exibicao master.
-- `/shared/:id`: overlay publico para OBS/transmissao.
+Depois de enviar upload, clique em Salvar para gravar a midia no patrocinador.
 
-## Limitacoes
+## Contador
 
-- Painel administrativo bloqueia mobile.
-- Metricas so contam quando habilitadas.
-- Player pode exibir cache local quando offline.
+O contador de exibicoes fica no painel do telao.
+
+- Ligue o contador geral.
+- Ative ou pause NORMAL e MASTER separadamente.
+- Se nao houver patrocinador ativo em um tipo, esse tipo fica indisponivel.
+- Se nenhum tipo puder contar, o contador desliga.
+
+## Overlays
+
+Em `/overlay`, crie overlays para transmissao. Em `/editor/:id`, adicione imagens e textos, ajuste posicao, tamanho, camada e visibilidade.
+
+Use `/shared/:id` no OBS ou ferramenta equivalente.
+
+## Pagina Publica
+
+`/` exibe:
+
+- identidade da paroquia;
+- preview do telao;
+- numeros publicos;
+- lista de patrocinadores;
+- busca;
+- links para relatorios.
+
+## Relatorios
+
+Cada patrocinador tem pagina publica em `/anunciantes/:id`, com:
+
+- midia;
+- total de exibicoes;
+- tempo acumulado;
+- graficos;
+- historico;
+- exportacao XLSX.

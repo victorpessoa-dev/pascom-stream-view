@@ -1,24 +1,33 @@
 # PASCOM Stream View
 
-Aplicacao Next.js para gerenciamento de patrocinadores, telao publico e overlays de transmissao da PASCOM.
+PASCOM Stream View e uma aplicacao Next.js para equipes de comunicacao paroquial gerenciarem patrocinadores, telao publico, overlays de transmissao e relatorios de exibicao.
 
-Esta auditoria inicial esta documentada em [docs/README.md](docs/README.md).
+O projeto usa Next.js App Router, Supabase Auth/Postgres/Storage, RLS, RPCs publicas controladas, Recharts, Radix UI e Tailwind CSS.
 
-## Variaveis principais
+## Como Funciona
+
+- O administrador acessa `/login` e entra no painel protegido.
+- Patrocinadores sao cadastrados em `/painel-telao` com imagem, GIF ou video.
+- O conteudo ativo aparece em `/telao` ou `/telao-master`.
+- O contador de exibicoes pode ser ativado por tipo de telao: NORMAL e MASTER.
+- A pagina publica `/` lista patrocinadores, mostra estatisticas e direciona para relatorios.
+- Cada patrocinador tem relatorio publico em `/anunciantes/:id`.
+- Overlays sao criados em `/overlay`, editados em `/editor/:id` e exibidos por `/shared/:id`.
+
+## Documentacao
+
+Comece por [docs/projeto-como-funciona.md](docs/projeto-como-funciona.md).
+
+Indice completo: [docs/README.md](docs/README.md).
+
+## Variaveis Principais
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-REDIS_URL=
-REDIS_CACHE_PREFIX=
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-REDIS_REST_URL=
-REDIS_REST_TOKEN=
 ```
 
-Redis e opcional. Quando configurado por `REDIS_URL`, `UPSTASH_REDIS_REST_*` ou `REDIS_REST_*`, as APIs publicas usam cache por TTL curto.
-Use `REDIS_CACHE_PREFIX` para isolar as chaves do projeto dentro de um Redis compartilhado.
+Essas variaveis sao obrigatorias no client e no server. Nunca versionar chaves sensiveis fora dos arquivos de exemplo.
 
 ## Scripts
 
@@ -28,18 +37,32 @@ npm run build
 npm run lint
 npm run typecheck
 npm run test
-npm run redis:dataset
 ```
 
-## Estado da auditoria
+## Validacao Recomendada
 
-- Build de producao validado com `npm run build`.
-- Lint executa limpo com `eslint.config.mjs`.
-- Typecheck direto executa limpo com `npm run typecheck`.
-- Build executa TypeScript; `typescript.ignoreBuildErrors` foi removido.
-- Testes automatizados foram iniciados com Vitest.
-- O root do Turbopack foi fixado em `next.config.mjs`.
-- O projeto foi padronizado para npm; `pnpm-lock.yaml` foi removido.
-- A refatoracao arquitetural foi iniciada com mappers centralizados e hardening de APIs.
-- Upload de imagens otimiza JPEG/PNG/WebP para WebP antes de salvar.
-- Upload de videos aceita WebM ou MP4; WebM tende a ser menor, MP4 e o fallback mais compativel.
+Antes de publicar:
+
+```bash
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+```
+
+No Windows, em alguns ambientes sandbox, Vitest/Next podem falhar com `spawn EPERM` ao iniciar workers. Rode fora do sandbox quando isso acontecer.
+
+## Midia
+
+- Imagens JPEG/PNG/WebP sao otimizadas para WebP antes do upload.
+- GIF e preservado.
+- Videos aceitos: MP4 e WebM.
+- Limite atual de upload: 100 MB.
+
+## Seguranca
+
+- Admin bloqueado em mobile.
+- Rotas administrativas protegidas por Supabase Auth e verificacao de `profiles.is_admin`.
+- Escritas protegidas por RLS com `public.is_admin()`.
+- APIs publicas usam RPCs e respostas `no-store`.
+- Links publicos sao filtrados para `http/https`.

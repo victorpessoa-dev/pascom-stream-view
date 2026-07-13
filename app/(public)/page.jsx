@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { Church, Clock, Eye, ExternalLink, MapPin, Megaphone, Play, Search, Star } from 'lucide-react'
+import { AlertTriangle, Church, Clock, Eye, ExternalLink, MapPin, Megaphone, Play, RefreshCw, Search, Star } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +13,7 @@ import PageContainer from '@/components/layout/page-container'
 import LoadingState from '@/components/shared/loading-state'
 import StaticMediaFrame from '@/components/shared/static-media-frame'
 import { normalizeSocialLinks } from '@/components/shared/social-links'
+import { isSafePublicUrl } from '@/lib/utils/url'
 
 const PUBLIC_PAGE_SIZE = 12
 
@@ -53,6 +54,8 @@ export default function PublicDashboardPage() {
     parishSocialLinks: [],
   })
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [showParishNav, setShowParishNav] = useState(false)
@@ -124,11 +127,13 @@ export default function PublicDashboardPage() {
             ...prev,
             ...(parishPayload || {}),
           }))
+          setLoadError(parishPayload?.error || '')
         }
-      } catch {
+      } catch (error) {
         if (!cancelled) {
           setActiveSponsors([])
           setAdvertisers([])
+          setLoadError(error instanceof Error ? error.message : 'Falha ao carregar dados públicos')
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -139,7 +144,7 @@ export default function PublicDashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadKey])
 
   useEffect(() => {
     if (activeSponsors.length === 0) return
@@ -222,6 +227,19 @@ export default function PublicDashboardPage() {
           </Button>
         </header>
 
+        {loadError ? (
+          <div className="flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{loadError}</span>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setReloadKey((value) => value + 1)} className="border-destructive/40 text-destructive hover:text-destructive">
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Tentar novamente
+            </Button>
+          </div>
+        ) : null}
+
         <section ref={parishProfileRef} className="overflow-hidden rounded-lg border border-border bg-card">
           <div className="relative min-h-[300px] bg-muted sm:min-h-[320px]">
             {parishInfo.parishCoverUrl ? (
@@ -281,11 +299,12 @@ export default function PublicDashboardPage() {
           </div>
         </section>
 
-        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <section className="flex flex-col justify-between gap-4 border-b border-border/70 pb-5 sm:flex-row sm:items-center">
           <div>
-            <p className="mt-1 text-muted-foreground">Preview do telão com busca e transparência dos patrocinadores logo abaixo.</p>
+            <h2 className="text-lg font-semibold text-foreground">Telão e transparência</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Preview do telão com busca e histórico público dos patrocinadores logo abaixo.</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
             <Button asChild>
               <Link href="/telao" target="_blank">
                 <Play className="mr-2 h-4 w-4" />
@@ -299,7 +318,7 @@ export default function PublicDashboardPage() {
               </Link>
             </Button>
           </div>
-        </div>
+        </section>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
@@ -402,7 +421,7 @@ export default function PublicDashboardPage() {
                               <span>{ad.type === 'MASTER' ? '/telao-master' : '/telao'}</span>
                             </div>
                           </div>
-                          {ad.websiteUrl?.startsWith('http') ? (
+                          {isSafePublicUrl(ad.websiteUrl) ? (
                             <a
                               href={ad.websiteUrl}
                               target="_blank"

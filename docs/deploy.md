@@ -1,42 +1,33 @@
 # Deploy, Ambientes e Operacao
 
-## Objetivo
-
-Documentar deploy em Vercel ou Node, variaveis de ambiente, setup Supabase e rotinas de backup/restore.
-
 ## Variaveis
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
-REDIS_URL=
-REDIS_CACHE_PREFIX=
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-REDIS_REST_URL=
-REDIS_REST_TOKEN=
 ```
 
-`NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` sao obrigatorias para client e server.
-Redis e opcional; quando configurado, as APIs publicas usam cache com TTL curto.
+As duas variaveis sao obrigatorias no client e no server.
 
 ## Vercel
 
 ```mermaid
 flowchart TD
-  A[Push Git] --> B[Vercel build]
-  B --> C[npm install]
+  A[Push Git] --> B[Vercel]
+  B --> C[npm ci]
   C --> D[npm run build]
-  D --> E[Rotas Next.js]
-  E --> F[Deploy production]
+  D --> E[Deploy]
+  E --> F[Smoke test]
 ```
 
 Passos:
 
-1. Configurar as variaveis no painel do projeto.
-2. Garantir Node compativel com Next 16 e React 19.
-3. Executar `npm run build` localmente antes do deploy.
-4. Rodar `npm run redis:dataset` quando criar ou trocar namespace Redis.
+1. Configurar variaveis Supabase.
+2. Aplicar migrations no Supabase.
+3. Garantir usuario admin em `profiles`.
+4. Rodar localmente `npm run lint`, `npm run typecheck`, `npm run test` e `npm run build`.
+5. Publicar.
+6. Fazer smoke test.
 
 ## Node
 
@@ -46,35 +37,42 @@ npm run build
 npm run start
 ```
 
-Use um process manager externo para manter o processo ativo e configurar restart automatico.
+Use process manager externo para manter restart automatico.
 
 ## Supabase
 
 Setup esperado:
 
 - Auth habilitado.
-- Tabelas e RPCs aplicadas pelo schema/migrations do projeto.
-- RLS ativo nas tabelas sensiveis.
-- Storage bucket `pascom-media`.
-- Politicas de storage revisadas para leitura publica somente quando necessario.
+- Migrations aplicadas.
+- RLS ativo.
+- RPCs criadas.
+- Bucket `pascom-media`.
+- Policies de storage aplicadas.
 
 ## Backup e Restore
 
-Backup recomendado:
+Backup:
 
-- Exportar schema e dados do Supabase em rotina programada.
-- Fazer backup do bucket `pascom-media`.
-- Guardar uma copia das variaveis de ambiente fora do repositorio.
-- Registrar a versao do dataset Redis com `npm run redis:dataset`.
+- exportar banco Supabase;
+- guardar arquivos do bucket `pascom-media`;
+- guardar variaveis de ambiente fora do repositorio;
+- documentar versao/commit em producao.
 
-Restore recomendado:
+Restore:
 
-1. Restaurar banco Supabase.
-2. Restaurar arquivos do bucket.
-3. Reaplicar variaveis no ambiente.
-4. Rodar `npm run redis:dataset`.
-5. Executar smoke test nas rotas `/`, `/telao`, `/telao-master` e `/api/anunciantes`.
+1. Restaurar banco.
+2. Restaurar bucket.
+3. Reaplicar variaveis.
+4. Rodar migrations pendentes.
+5. Fazer smoke test.
 
-## Limitacoes
+## Smoke Test
 
-O projeto ainda nao possui Dockerfile nem pipeline CI/CD versionado. A validacao atual depende dos scripts npm locais.
+- `/` carrega perfil e patrocinadores.
+- `/login` abre e redireciona depois de login.
+- `/admin` exige admin.
+- `/painel-telao` lista patrocinadores.
+- `/telao` e `/telao-master` exibem midia ativa.
+- `/overlay` lista overlays.
+- `/shared/:id` abre overlay publico.

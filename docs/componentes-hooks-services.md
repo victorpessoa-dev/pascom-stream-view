@@ -39,7 +39,6 @@ Mapear responsabilidades e oportunidades de separacao.
 - `uploadMedia`
 - `optimizeImageForUpload`
 - `validateMediaFile`
-- `getCachedJson`, `setCachedJson`, `deleteCacheKeys`, `incrementExpiringKey`
 - `checkRateLimit`
 - `getAdminSettings`, `saveAdminSettings`, `resetAdminSettings`, `resetAdministrativeData`
 - `getTelaoDefaultDurations`
@@ -94,7 +93,6 @@ flowchart TD
 
 ## Melhorias
 
-- Extrair repositories de overlays e settings.
 - Extrair hooks: `useSponsors`, `useOverlays`, `useTelaoPlaylist`, `useOverlayEditor`.
 - Criar schemas de dominio para payloads e rows.
 - Dividir `OverlayEditor` por toolbar, canvas, properties panel e dialogs.

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mapPublicAdRow, mapSponsorImpressionRow, mapSponsorRow } from '@/lib/mappers/sponsors'
+import { isSafePublicUrl } from '@/lib/utils/url'
 
 describe('sponsor mappers', () => {
   it('maps sponsor database rows to the public domain shape', () => {
@@ -45,5 +46,12 @@ describe('sponsor mappers', () => {
       durationSeconds: 0,
       source: 'telao',
     })
+  })
+
+  it('identifies safe public URLs', () => {
+    expect(isSafePublicUrl('https://paroquia.example')).toBe(true)
+    expect(isSafePublicUrl('http://paroquia.example')).toBe(true)
+    expect(isSafePublicUrl('javascript:alert(1)')).toBe(false)
+    expect(isSafePublicUrl('file:///etc/passwd')).toBe(false)
   })
 })

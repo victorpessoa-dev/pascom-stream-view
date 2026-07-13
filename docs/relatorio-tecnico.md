@@ -73,8 +73,9 @@ flowchart TD
 - Rota `/logout` criada.
 - Upload com validacao de tipo e tamanho.
 - Vitest configurado com cobertura inicial.
-- Redis TCP/REST configurado com dataset e prefixo de cache.
-- Rate limit das APIs publicas passou a usar Redis quando disponivel, com fallback em memoria.
+- APIs publicas padronizadas com `no-store`.
+- Rate limit de logs mantido em memoria.
+- Telao usa realtime, cache local e fila offline de logs.
 - Documentacao de deploy, ambientes, backup e restore adicionada.
 - StoreProvider passou a usar mappers/repositories para overlays, sponsors e settings.
 - `TelaoPlayer` e `OverlayEditor` tiveram logica pura extraida para services testaveis.

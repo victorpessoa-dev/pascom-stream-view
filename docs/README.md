@@ -1,38 +1,40 @@
-# Documentacao Tecnica - PASCOM Stream View
+# Documentacao - PASCOM Stream View
 
-## Objetivo
+## Comece Aqui
 
-Centralizar a auditoria inicial, o inventario tecnico, os fluxos Mermaid, os riscos e o plano de evolucao do projeto.
-
-## Documentos
-
+- [O que e o projeto e como funciona](./projeto-como-funciona.md)
 - [Visao geral e arquitetura](./visao-geral.md)
+- [Guia do usuario](./guia-do-usuario.md)
+- [Guia do desenvolvedor](./guia-do-desenvolvedor.md)
+
+## Referencias Tecnicas
+
 - [Estrutura de pastas](./estrutura-de-pastas.md)
 - [Fluxos da aplicacao](./fluxos.md)
 - [Banco de dados](./banco-de-dados.md)
 - [APIs](./apis.md)
 - [Componentes, hooks, services e providers](./componentes-hooks-services.md)
-- [Autenticacao, seguranca, logs e integracoes](./seguranca-operacao.md)
 - [Cache e midia](./cache-e-midia.md)
-- [Docker, deploy, build e testes](./devops-testes.md)
+- [Autenticacao, seguranca, logs e operacao](./seguranca-operacao.md)
 - [Deploy, ambientes e operacao](./deploy.md)
-- [Guia do desenvolvedor](./guia-do-desenvolvedor.md)
-- [Guia do usuario](./guia-do-usuario.md)
-- [Convencoes, boas praticas, FAQ e glossario](./convencoes-faq-glossario.md)
-- [Revisao tecnica, roadmap e relatorio final](./relatorio-tecnico.md)
+- [Docker, build e testes](./devops-testes.md)
+- [Backup e restore Supabase](./backup-restore-supabase.md)
+- [Smoke test pos-deploy](./smoke-test-pos-deploy.md)
+- [Convencoes, FAQ e glossario](./convencoes-faq-glossario.md)
+- [Relatorio tecnico e roadmap](./relatorio-tecnico.md)
 
-## Fluxograma
+## Mapa Rapido
 
 ```mermaid
 flowchart TD
-  A[Auditoria do codigo] --> B[Mapeamento de dominio]
-  B --> C[Diagramas Mermaid]
-  C --> D[Revisao tecnica]
-  D --> E[Roadmap de refatoracao]
-  E --> F[Refatoracoes pequenas e verificaveis]
-  F --> G[Testes e hardening]
+  A[Operacao PASCOM] --> B[Painel admin]
+  B --> C[Patrocinadores]
+  B --> D[Overlays]
+  C --> E[Telao NORMAL e MASTER]
+  E --> F[Metricas e relatorios publicos]
+  D --> G[Links /shared para transmissao]
 ```
 
-## Limitacoes Desta Etapa
+## Convencao
 
-A documentacao abaixo cobre a auditoria e a proposta tecnica. Refatoracoes estruturais foram deliberadamente adiadas para preservar comportamento e permitir validacao incremental.
+Os documentos descrevem o estado atual do projeto. Quando uma migration, rota ou regra de negocio mudar, atualize a pagina correspondente junto com o codigo.

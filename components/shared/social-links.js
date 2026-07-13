@@ -1,6 +1,7 @@
 'use client'
 
 import { Facebook, Globe, Instagram, Music2, Send, Youtube } from 'lucide-react'
+import { isSafePublicUrl } from '@/lib/utils/url'
 
 export function WhatsAppIcon({ className }) {
   return (
@@ -37,7 +38,7 @@ export function normalizeSocialLinks(profile = {}) {
       Icon,
       url: String(profile[key] || '').trim(),
     }))
-    .filter((item) => item.url)
+    .filter((item) => isSafePublicUrl(item.url))
 
   const extraLinks = Array.isArray(profile.parishSocialLinks) ? profile.parishSocialLinks : []
 
@@ -54,6 +55,6 @@ export function normalizeSocialLinks(profile = {}) {
           Icon: getSocialIcon(label || url),
         }
       })
-      .filter((item) => item.url),
+      .filter((item) => isSafePublicUrl(item.url)),
   ]
 }

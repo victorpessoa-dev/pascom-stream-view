@@ -11,10 +11,16 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import AppFooter from '@/components/shared/app-footer'
 
+const loginErrorMessages = {
+  admin_required: 'Sua conta entrou, mas nao possui permissao administrativa.',
+  missing_supabase_env: 'A configuracao do Supabase nao foi encontrada no servidor.',
+}
+
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = getSafeRedirectPath(searchParams.get('redirectTo'))
+  const accessError = loginErrorMessages[searchParams.get('error')] || ''
 
   const [email, setEmail] = React.useState('')
   const [password, setPassword] = React.useState('')
@@ -90,6 +96,12 @@ function LoginForm() {
                   </button>
                 </div>
               </div>
+
+              {accessError ? (
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+                  {accessError}
+                </div>
+              ) : null}
 
               {error ? (
                 <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">

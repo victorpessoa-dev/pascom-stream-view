@@ -31,9 +31,11 @@ flowchart TD
   D -- Nao --> E[Redirect /login?error=missing_supabase_env]
   D -- Sim --> F[supabase.auth.getUser]
   F -- Sem usuario --> G[Redirect /login com redirectTo]
-  F -- Usuario valido --> H[Permite rota admin]
-  I[Login page] --> J[signInWithPassword]
-  J --> K[router.replace redirectTo]
+  F -- Usuario valido --> H{profiles.is_admin?}
+  H -- Sim --> I[Permite rota admin]
+  H -- Nao --> J[Redirect /login?error=admin_required]
+  K[Login page] --> L[signInWithPassword]
+  L --> M[router.replace redirectTo]
 ```
 
 ## Player do Telao
@@ -46,7 +48,7 @@ flowchart TD
   D --> E[Embaralha quando assinatura muda]
   E --> F[Preload e cache local]
   F --> G[Timer de exibicao]
-  G --> H{metricas ligadas?}
+  G --> H{metricas ligadas e tipo nao pausado?}
   H -- Sim --> I[POST /api/anunciantes/logs]
   I --> J[RPC log_sponsor_impression]
   I -- Falha --> K[Fila localStorage]
@@ -87,8 +89,8 @@ flowchart TD
   E --> F[Route summary]
 ```
 
-## Limitacoes
+## Observacoes
 
-- O provider global carrega dados mesmo em rotas que poderiam usar apenas API server-side.
-- O estado global ainda concentra responsabilidades que podem ser migradas para services/repositories.
-- Fluxos de player e editor ainda precisam de testes automatizados mais amplos.
+- O provider global atende o admin e centraliza overlays, patrocinadores e settings.
+- O player usa realtime, refresh periodico e cache local.
+- Logs offline ficam em fila local e sao reenviados depois.

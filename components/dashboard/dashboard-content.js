@@ -5,7 +5,9 @@ import Link from 'next/link'
 import { Activity, ArrowRight, Clock, Eye, Layers, Megaphone, TrendingUp } from 'lucide-react'
 import { DonutChart, HorizontalBarChart } from '@/components/shared/simple-charts'
 import PageContainer from '@/components/layout/page-container'
+import LoadingState from '@/components/shared/loading-state'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { useStore } from '@/lib/store/store'
 import { cn } from '@/lib/utils/cn'
 
@@ -106,36 +108,48 @@ export default function DashboardContent() {
     [ads]
   )
 
+  if (!isLoaded) {
+    return <LoadingState label="Carregando dashboard..." />
+  }
+
   return (
     <PageContainer>
-      <div className="mb-8">
+      <section className="mb-6 flex flex-col gap-4 border-b border-border/70 pb-5 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-          <p className="mt-1 text-muted-foreground">Bem-vindo ao PASCOM Stream View.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Visão operacional da transmissão, overlays e patrocinadores.</p>
         </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button asChild variant="outline">
+            <Link href="/overlay">Gerenciar overlays</Link>
+          </Button>
+          <Button asChild>
+            <Link href="/painel-telao">Painel do telão</Link>
+          </Button>
+        </div>
+      </section>
+
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard title="Total de overlays" value={overlays.length} description="Overlays criados" icon={Layers} />
+        <StatCard title="Patrocínios ativos" value={activeAds} description={`De ${ads.length} cadastrados`} icon={Megaphone} />
+        <StatCard title="Elementos" value={totalElements} description="Total de elementos" icon={Activity} />
+        <StatCard title="Exibições" value={totalViews} description={`Tempo total: ${formatDuration(totalSeconds)}`} icon={Eye} />
       </div>
 
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total de overlays" value={isLoaded ? overlays.length : '-'} description="Overlays criados" icon={Layers} />
-        <StatCard title="Patrocínios ativos" value={isLoaded ? activeAds : '-'} description={`De ${ads.length} cadastrados`} icon={Megaphone} />
-        <StatCard title="Elementos" value={isLoaded ? totalElements : '-'} description="Total de elementos" icon={Activity} />
-        <StatCard title="Exibições" value={isLoaded ? totalViews : '-'} description={`Tempo total: ${formatDuration(totalSeconds)}`} icon={Eye} />
-      </div>
-
-      <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="mb-8 grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Visão dos patrocínios</CardTitle>
             <CardDescription>Status e tipos cadastrados no painel.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-6 sm:grid-cols-2">
-            <div>
+          <CardContent className="grid min-w-0 gap-6 lg:grid-cols-2">
+            <div className="min-w-0">
               <h3 className="mb-3 text-sm font-medium">Status</h3>
-              <DonutChart data={isLoaded ? sponsorStatusData : []} emptyMessage="Nenhum patrocínio cadastrado." />
+              <DonutChart data={sponsorStatusData} emptyMessage="Nenhum patrocínio cadastrado." />
             </div>
-            <div>
+            <div className="min-w-0">
               <h3 className="mb-3 text-sm font-medium">Tipo</h3>
-              <DonutChart data={isLoaded ? sponsorTypeData : []} emptyMessage="Nenhum patrocínio cadastrado." />
+              <DonutChart data={sponsorTypeData} emptyMessage="Nenhum patrocínio cadastrado." />
             </div>
           </CardContent>
         </Card>
@@ -145,14 +159,14 @@ export default function DashboardContent() {
             <CardTitle>Desempenho dos patrocínios</CardTitle>
             <CardDescription>Ranking por exibições e tempo acumulado.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-6 sm:grid-cols-2">
-            <div>
+          <CardContent className="grid min-w-0 gap-6 lg:grid-cols-2">
+            <div className="min-w-0">
               <h3 className="mb-3 text-sm font-medium">Mais exibidos</h3>
-              <HorizontalBarChart data={isLoaded ? topViewsData : []} emptyMessage="Ainda não há exibições registradas." />
+              <HorizontalBarChart data={topViewsData} emptyMessage="Ainda não há exibições registradas." />
             </div>
-            <div>
+            <div className="min-w-0">
               <h3 className="mb-3 text-sm font-medium">Maior tempo no ar</h3>
-              <HorizontalBarChart data={isLoaded ? topTimeData : []} valueFormatter={formatDuration} emptyMessage="Ainda não há tempo registrado." />
+              <HorizontalBarChart data={topTimeData} valueFormatter={formatDuration} emptyMessage="Ainda não há tempo registrado." />
             </div>
           </CardContent>
         </Card>

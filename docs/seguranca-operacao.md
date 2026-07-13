@@ -1,64 +1,76 @@
-# Autenticacao, Seguranca, Logs e Integracoes
+# Autenticacao, Seguranca, Logs e Operacao
 
-## Objetivo
+## Autenticacao e Acesso
 
-Registrar mecanismos de protecao, integracoes externas, logs e riscos operacionais.
-
-## Autenticacao
-
-O `proxy.js` protege rotas admin e permite rotas publicas/API. Usa Supabase SSR e `auth.getUser`.
+O `proxy.js` protege rotas administrativas. O fluxo valida ambiente Supabase, usuario autenticado e perfil admin.
 
 ```mermaid
 flowchart TD
-  A[Request] --> B{Public path ou API?}
-  B -- Sim --> C[Permite]
-  B -- Nao --> D{Admin path?}
-  D -- Nao --> C
-  D -- Sim --> E[Valida env Supabase]
-  E --> F[auth.getUser]
-  F -- Invalido --> G[/login]
-  F -- Valido --> C
+  A[Request admin] --> B{Supabase env existe?}
+  B -- Nao --> C[/login?error=missing_supabase_env]
+  B -- Sim --> D[auth.getUser]
+  D -- Sem usuario --> E[/login]
+  D -- Usuario --> F[profiles.is_admin]
+  F -- false --> G[/login?error=admin_required]
+  F -- true --> H[Permite]
 ```
+
+O admin tambem e bloqueado em modo mobile por UX e operacao.
 
 ## Autorizacao
 
-A autorizacao real de escrita e feita por RLS no Supabase com `public.is_admin()`.
+A escrita nas tabelas sensiveis depende de RLS e `public.is_admin()`:
 
-## Integracoes
+- `sponsors`
+- `overlays`
+- `app_settings`
+- `telao_sessions`
+- `sponsor_impressions`
 
-- Supabase Auth
-- Supabase Postgres/RPC/RLS
-- Supabase Storage bucket `pascom-media`
-- Vercel Analytics em producao
-- Redis opcional, via `REDIS_URL`, `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` ou `REDIS_REST_URL`/`REDIS_REST_TOKEN`, para cache das APIs publicas.
+Perfis podem ser lidos pelo proprio usuario, mas update de perfil e admin-only.
 
-## Logs
+## Headers de Seguranca
 
-Logs de exibicao sao persistidos em `sponsor_impressions` quando `metricsEnabled` esta ativo. O player guarda fila offline em `localStorage`.
+Configurados em `next.config.mjs`:
 
-## Cache
+- `X-Content-Type-Options: nosniff`
+- `X-DNS-Prefetch-Control: off`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `X-Frame-Options: SAMEORIGIN`
+- `Cross-Origin-Opener-Policy: same-origin`
+- `X-Permitted-Cross-Domain-Policies: none`
+- `Strict-Transport-Security`
+- `Permissions-Policy`
 
-```mermaid
-flowchart TD
-  A[GET API publica] --> B{Redis configurado?}
-  B -- Sim --> C[Busca cache por chave]
-  C -- Hit --> D[Retorna JSON]
-  C -- Miss --> E[Consulta Supabase RPC]
-  B -- Nao --> E
-  E --> F[Salva cache com TTL curto]
-  G[POST logs] --> H[Invalida chaves relacionadas]
-```
+## Links Publicos
 
-As chaves atuais sao:
+URLs publicas externas sao filtradas para aceitar apenas `http` e `https`. Isso vale para redes sociais e links de patrocinadores.
 
-- `api:ads-novenario:v1`
-- `api:anunciantes:v1`
-- `api:anunciantes:{id}:v1`
+## Logs e Contador
 
-## Riscos
+Logs de exibicao usam `/api/anunciantes/logs` e RPCs no banco. O payload e validado com Zod e tem rate limit em memoria por IP.
 
-- `/logout` possui route handler local e chama `supabase.auth.signOut`.
-- APIs publicas de log tem rate limit simples; demais rotas publicas dependem de TTL/cache e RLS/RPC.
-- Upload valida tamanho, tipo de arquivo e otimiza imagens para WebP.
-- `NEXT_PUBLIC_SUPABASE_*` e obrigatorio no client e server.
-- Texto com mojibake afeta confiabilidade e experiencia.
+O contador:
+
+- so registra quando `metricsEnabled` esta ativo;
+- respeita pausa por `NORMAL` e `MASTER`;
+- ignora fontes invalidas;
+- limita duracao registrada;
+- valida patrocinador ativo no banco.
+
+## Upload
+
+Upload valida:
+
+- tamanho maximo;
+- MIME permitido;
+- nome sanitizado;
+- otimizacao de imagens comuns;
+- bucket de destino controlado por policies de storage.
+
+## Operacao
+
+- Aplicar migrations antes do deploy.
+- Garantir que ao menos um usuario tenha `profiles.is_admin = true`.
+- Revisar RPCs `security definer` sempre que tabelas publicas mudarem.
+- Fazer smoke test em `/`, `/login`, `/telao`, `/telao-master`, `/painel-telao` e `/overlay`.

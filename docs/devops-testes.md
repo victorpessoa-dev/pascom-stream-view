@@ -1,60 +1,62 @@
-# Docker, Deploy, Build e Testes
+# Build, Deploy e Testes
 
-## Objetivo
-
-Documentar estado de DevOps, build, deploy e cobertura de testes.
-
-## Build
-
-Validado com:
+## Scripts
 
 ```bash
-npm install
+npm run lint
+npm run typecheck
+npm run test
 npm run build
 ```
 
-Resultado: build Next.js passou fora do sandbox. O build executa TypeScript porque `typescript.ignoreBuildErrors` foi removido.
+## Build
+
+`npm run build` executa Next build e TypeScript. Em alguns ambientes Windows sandbox, workers podem falhar com `spawn EPERM`; nesse caso rode fora do sandbox.
 
 ## Lint
 
-`npm run lint` executa com `eslint.config.mjs` e termina sem erros.
+`npm run lint` usa ESLint 9 e `eslint.config.mjs`.
 
 ## Typecheck
 
-`npm run typecheck` executa `tsc --noEmit -p jsconfig.json` e termina sem erros.
+`npm run typecheck` usa:
 
-## Docker
-
-Nao foram encontrados `Dockerfile`, `docker-compose.yml` ou configs de container.
-
-## Deploy
-
-O app e compativel com Vercel/Next e tambem pode rodar em Node com `npm run build` seguido de `npm run start`.
-As variaveis esperadas estao em `.env.example` e incluem Supabase, Redis TCP/REST e prefixo de cache.
+```bash
+tsc --noEmit -p jsconfig.json
+```
 
 ## Testes
 
-`npm run test` executa Vitest. A cobertura inicial inclui mappers de patrocinadores, validacao de logs de exibicao, validacao/sanitizacao de upload e helpers puros do gerador XLSX.
+`npm run test` executa Vitest. A cobertura inclui:
 
-Os testes ficam organizados em `tests/unit`.
+- mappers de patrocinadores;
+- normalizacao de settings;
+- validacao de URLs publicas;
+- API routes;
+- rate limit;
+- upload e sanitizacao de midia;
+- helpers do telao;
+- export XLSX simples;
+- fluxos de auth e logs.
 
-## Diagrama
+## Docker
+
+O repositorio possui `Dockerfile` e `docker-compose.yml`, mas o fluxo principal recomendado continua sendo Vercel ou Node com `npm run build` e `npm run start`.
+
+## Pipeline Recomendada
 
 ```mermaid
 flowchart TD
-  A[Developer] --> B[npm install]
+  A[Commit] --> B[npm ci]
   B --> C[npm run lint]
-  B --> D[npm run test]
-  B --> E[npm run build]
-  E --> F[Next static/dynamic routes]
-  F --> G[Deploy Vercel ou Node]
+  C --> D[npm run typecheck]
+  D --> E[npm run test]
+  E --> F[npm run build]
+  F --> G[Deploy]
 ```
 
-## Lacunas de Teste
+## Lacunas Recomendadas
 
-- Expandir cobertura de mappers e payload builders.
-- Repositories Supabase depois da extracao.
-- `simple-xlsx` e geracao de XML/ZIP.
-- `TelaoPlayer`: cache, fila offline, rotacao e logs.
-- API routes: status 400/404/500.
-- RLS/RPCs via testes SQL ou integracao.
+- Testes SQL/RLS em Supabase isolado.
+- Testes E2E para login, cadastro de patrocinador e telao.
+- Teste visual para dashboards e relatorios mobile.

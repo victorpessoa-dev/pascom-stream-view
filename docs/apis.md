@@ -1,19 +1,18 @@
 # APIs
 
-## Objetivo
-
-Documentar endpoints, payloads, respostas, erros, status HTTP, middleware e autenticacao.
-
 ## Endpoints
 
 | Metodo | Rota | Responsabilidade |
 | --- | --- | --- |
-| GET | `/api/anunciantes` | Lista diretorio publico de patrocinadores |
-| GET | `/api/anunciantes/:id` | Detalhe publico e logs de um patrocinador |
-| POST | `/api/anunciantes/logs` | Registra exibicoes do telao |
-| GET | `/api/ads-novenario` | Retorna playlist publica e settings |
+| GET | `/api/ads-novenario` | Playlist publica e settings do telao |
+| GET | `/api/anunciantes` | Diretorio publico de patrocinadores |
+| GET | `/api/anunciantes/:id` | Detalhe publico e logs de patrocinador |
+| POST | `/api/anunciantes/logs` | Registro de exibicoes do telao |
+| GET | `/api/perfil-paroquia` | Perfil publico da paroquia |
 
-## Fluxo da API
+Todas as respostas publicas usam `Cache-Control: no-store`.
+
+## Fluxo
 
 ```mermaid
 sequenceDiagram
@@ -24,33 +23,49 @@ sequenceDiagram
   C->>A: Request
   A->>S: createSupabaseServerClient
   S->>DB: rpc(...)
-  DB-->>S: rows/json
-  S-->>A: data/error
-  A-->>C: NextResponse.json
+  DB-->>S: data/error
+  A-->>C: JSON no-store
 ```
 
-## Payload de Logs
+## Logs de Exibicao
+
+Payload unico:
 
 ```json
 {
-  "sponsorId": "uuid",
-  "displayedAt": "2026-07-06T12:00:00.000Z",
+  "sponsorId": "00000000-0000-4000-8000-000000000001",
+  "displayedAt": "2026-07-13T12:00:00.000Z",
   "durationSeconds": 10,
   "source": "telao"
 }
 ```
 
-Tambem aceita `{ "logs": [...] }`.
+Payload em lote:
 
-## Erros
+```json
+{
+  "logs": [
+    {
+      "sponsorId": "00000000-0000-4000-8000-000000000001",
+      "durationSeconds": 10,
+      "source": "telao-master"
+    }
+  ]
+}
+```
 
-- `400`: `sponsorId` ausente em logs.
-- `404`: anunciante nao encontrado.
-- `500`: falha Supabase/RPC/ambiente.
+## Validacoes
 
-## Limitacoes
+- Zod valida logs.
+- `source` deve representar `telao` ou `telao-master` no banco.
+- Duracao e limitada.
+- Rate limit em memoria protege o POST de logs.
+- RPC ignora logs quando contador esta desativado, tipo pausado ou patrocinador inativo.
 
-- O POST de logs executa RPC em loop sequencial.
-- Erros expostos usam mensagens originais quando `error instanceof Error`.
-- Nao ha rate limiting no nivel da API.
-- Nao ha schema Zod para validar payloads.
+## Status
+
+- `200`: sucesso.
+- `400`: payload invalido.
+- `404`: patrocinador nao encontrado.
+- `429`: muitas requisicoes.
+- `500`: falha Supabase/RPC.

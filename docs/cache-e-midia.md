@@ -2,86 +2,62 @@
 
 ## Objetivo
 
-Documentar o cache Redis opcional e a politica de arquivos de midia.
+Documentar como o projeto evita dados velhos e como trata arquivos de midia.
 
-## Redis
+## Cache Atual
 
-O projeto usa Redis opcional quando estas variaveis estao configuradas:
-
-```env
-UPSTASH_REDIS_REST_URL=
-UPSTASH_REDIS_REST_TOKEN=
-REDIS_URL=
-REDIS_CACHE_PREFIX=
-REDIS_REST_URL=
-REDIS_REST_TOKEN=
-```
-
-Sem essas variaveis, a aplicacao segue funcionando sem cache externo.
-Use `REDIS_URL` para Redis TCP/TLS tradicional e as variaveis `UPSTASH_*` ou `REDIS_REST_*` para Redis REST.
-Use `REDIS_CACHE_PREFIX` para prefixar todas as chaves e evitar colisao com outros projetos.
-
-## Dataset Redis
-
-O dataset operacional fica registrado como metadado persistente nestas chaves:
-
-```text
-dataset:pascom-stream-view:latest
-dataset:pascom-stream-view:v1
-```
-
-Ele documenta as chaves de cache usadas pelas APIs:
-
-```text
-api:ads-novenario:v1        TTL 10s
-api:anunciantes:v1          TTL 30s
-api:anunciantes:{id}:v1     TTL 30s
-```
-
-Com `REDIS_CACHE_PREFIX=virtus-cache`, as mesmas chaves passam a ser gravadas como:
-
-```text
-virtus-cache:dataset:pascom-stream-view:latest
-virtus-cache:dataset:pascom-stream-view:v1
-virtus-cache:api:ads-novenario:v1
-virtus-cache:api:anunciantes:v1
-virtus-cache:api:anunciantes:{id}:v1
-```
-
-Para criar ou atualizar o dataset:
-
-```bash
-npm run redis:dataset
-```
-
-As chaves das APIs nao sao populadas por seed para evitar payload falso. Elas sao gravadas com dados reais no primeiro acesso das rotas publicas.
+As APIs publicas usam `Cache-Control: no-store, max-age=0`. Isso evita que pagina publica, relatorios e telao recebam dados antigos depois de alteracoes no painel.
 
 ```mermaid
-sequenceDiagram
-  participant C as Client
-  participant A as API Next
-  participant R as Redis
-  participant S as Supabase RPC
-  C->>A: GET publico
-  A->>R: GET cache
-  alt Cache hit
-    R-->>A: JSON
-  else Cache miss
-    A->>S: RPC
-    S-->>A: Dados
-    A->>R: SET EX
-  end
-  A-->>C: JSON
+flowchart TD
+  A[Admin altera patrocinador/settings] --> B[Supabase]
+  B --> C[Realtime postgres_changes]
+  C --> D[Telao agenda refresh rapido]
+  D --> E[GET /api/ads-novenario no-store]
+  E --> F[Atualiza playlist]
 ```
 
-## Midia
+## Telao Offline
 
-- Imagens JPEG, PNG e WebP sao otimizadas no navegador para WebP com qualidade 0.86 e lado maximo de 2560px.
-- GIF e preservado para evitar perda de animacao.
-- Videos aceitos: WebM e MP4.
-- Para menor espaco, prefira WebM; para maior compatibilidade, use MP4.
-- O limite atual de upload e 100MB.
+O componente de telao mantem uma copia local da ultima playlist por tipo:
 
-## Limitacoes
+- `pascom:telao:ads-cache:NORMAL`
+- `pascom:telao:ads-cache:MASTER`
 
-O projeto nao faz transcodificacao de video no browser. Para compressao real de video, recomenda-se pipeline server-side ou ferramenta externa antes do upload.
+Se a API falhar e houver cache local, o telao continua exibindo a ultima lista conhecida e mostra aviso de cache local.
+
+## Fila de Logs
+
+Quando o contador esta ativo e o POST de logs falha, o player salva os logs em `localStorage` e tenta reenviar quando a conexao volta ou em intervalos periodicos.
+
+Chave local:
+
+```text
+pascom:telao:log-queue
+```
+
+## Atualizacao
+
+- Realtime do Supabase atualiza a playlist rapidamente quando `sponsors` ou `app_settings` mudam.
+- Um refresh periodico de seguranca roda em intervalo maior.
+- A assinatura de playlist considera midia, tipo, duracao, status e settings para evitar re-render sem mudanca real.
+
+## Upload e Midia
+
+- Bucket: `pascom-media`.
+- Limite: 100 MB.
+- Imagens permitidas: GIF, JPEG, PNG, WebP.
+- Videos permitidos: MP4 e WebM.
+- JPEG/PNG/WebP sao otimizados para WebP no navegador antes do upload.
+- GIF e preservado para manter animacao.
+- Videos nao passam por transcodificacao.
+
+## Previews
+
+Em cards e listas administrativas, videos/GIFs podem ser renderizados como frame estatico para reduzir distracao e custo visual. No telao, a midia roda conforme configurada.
+
+## Recomendacoes
+
+- Para videos grandes, comprimir antes do upload.
+- Preferir WebM para menor tamanho e MP4 para compatibilidade.
+- Evitar trocar arquivos mantendo a mesma URL; o storage usa nomes com UUID para cache seguro.
