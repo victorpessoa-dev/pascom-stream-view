@@ -521,6 +521,10 @@ select
   ) as sponsor_round_seconds,
   now() as updated_at;
 
+revoke all on public.public_stats from public;
+revoke all on public.public_stats from anon;
+revoke all on public.public_stats from authenticated;
+
 -- =========================================================
 -- PUBLIC FUNCTIONS
 -- =========================================================
