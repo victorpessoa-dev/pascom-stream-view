@@ -21,6 +21,28 @@ function createSupabaseRpcMock(responses) {
 
 function createSupabaseTableMock() {
   const calls = []
+  const rpcRows = {
+    create_admin_sponsor: {
+      id: 'sponsor-1',
+      name: 'Empresa A',
+      kind: 'MASTER',
+      media_url: 'https://cdn.example/a.mp4',
+      media_type: 'video',
+      website_url: 'https://empresa.example',
+      duration_seconds: 15,
+      active: true,
+    },
+    update_admin_sponsor: {
+      id: 'sponsor-1',
+      name: 'Empresa A editada',
+      kind: 'NORMAL',
+      media_url: 'https://cdn.example/a.webp',
+      media_type: 'image',
+      website_url: 'https://empresa.example',
+      duration_seconds: 20,
+      active: true,
+    },
+  }
   const builder = {
     insert(payload) {
       calls.push(['insert', payload])
@@ -58,6 +80,14 @@ function createSupabaseTableMock() {
   return {
     calls,
     client: {
+      rpc(name, args) {
+        calls.push(['rpc', name, args])
+        return {
+          single() {
+            return Promise.resolve({ data: rpcRows[name], error: null })
+          },
+        }
+      },
       from(table) {
         calls.push(['from', table])
         return builder
@@ -166,14 +196,14 @@ describe('sponsor services', () => {
       duration: 15,
     })
 
-    expect(calls).toContainEqual(['from', 'sponsors'])
-    expect(calls).toContainEqual(['insert', expect.objectContaining({
-      name: 'Empresa A',
-      kind: 'MASTER',
-      media_url: 'https://cdn.example/a.mp4',
-      media_type: 'video',
-      duration_seconds: 15,
+    expect(calls).toContainEqual(['rpc', 'create_admin_sponsor', expect.objectContaining({
+      name_arg: 'Empresa A',
+      kind_arg: 'MASTER',
+      media_url_arg: 'https://cdn.example/a.mp4',
+      media_type_arg: 'video',
+      duration_seconds_arg: 15,
     })])
+    expect(calls.some(([call]) => call === 'insert')).toBe(false)
     expect(sponsor).toMatchObject({ id: 'sponsor-1', sourceType: 'supabase' })
   })
 
@@ -188,11 +218,10 @@ describe('sponsor services', () => {
       duration: 12,
     })
 
-    expect(calls).toContainEqual(['insert', expect.objectContaining({
-      kind: 'NORMAL',
-      media_url: 'https://cdn.example/video.mp4',
-      media_type: 'video',
-      image_url: null,
+    expect(calls).toContainEqual(['rpc', 'create_admin_sponsor', expect.objectContaining({
+      kind_arg: 'NORMAL',
+      media_url_arg: 'https://cdn.example/video.mp4',
+      media_type_arg: 'video',
     })])
   })
 
@@ -211,11 +240,12 @@ describe('sponsor services', () => {
       duration: 20,
     })
 
-    expect(calls).toContainEqual(['eq', 'id', 'sponsor-1'])
-    expect(calls).toContainEqual(['update', expect.objectContaining({
-      name: 'Empresa A editada',
-      kind: 'NORMAL',
-      duration_seconds: 20,
+    expect(calls).toContainEqual(['rpc', 'update_admin_sponsor', expect.objectContaining({
+      sponsor_id_arg: 'sponsor-1',
+      name_arg: 'Empresa A editada',
+      kind_arg: 'NORMAL',
+      duration_seconds_arg: 20,
     })])
+    expect(calls.some(([call]) => call === 'update')).toBe(false)
   })
 })

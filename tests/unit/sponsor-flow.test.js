@@ -3,6 +3,28 @@ import { createSponsorForAdmin, updateSponsorForAdmin } from '@/lib/services/spo
 
 function createSupabaseTableMock() {
   const calls = []
+  const rpcRows = {
+    create_admin_sponsor: {
+      id: 'sponsor-1',
+      name: 'Empresa A',
+      kind: 'NORMAL',
+      media_url: 'https://cdn.example/a.webp',
+      media_type: 'image',
+      website_url: 'https://empresa.example',
+      duration_seconds: 12,
+      active: true,
+    },
+    update_admin_sponsor: {
+      id: 'sponsor-1',
+      name: 'Empresa A editada',
+      kind: 'NORMAL',
+      media_url: 'https://cdn.example/a.webp',
+      media_type: 'image',
+      website_url: 'https://empresa.example',
+      duration_seconds: 20,
+      active: false,
+    },
+  }
   const builder = {
     insert(payload) {
       calls.push(['insert', payload])
@@ -40,6 +62,14 @@ function createSupabaseTableMock() {
   return {
     calls,
     client: {
+      rpc(name, args) {
+        calls.push(['rpc', name, args])
+        return {
+          single() {
+            return Promise.resolve({ data: rpcRows[name], error: null })
+          },
+        }
+      },
       from(table) {
         calls.push(['from', table])
         return builder
@@ -65,13 +95,13 @@ describe('sponsor admin flow', () => {
       duration: 12,
     })
 
-    expect(calls).toContainEqual(['from', 'sponsors'])
-    expect(calls).toContainEqual(['insert', expect.objectContaining({
-      name: 'Empresa A',
-      kind: 'NORMAL',
-      media_url: 'https://cdn.example/a.webp',
-      duration_seconds: 12,
+    expect(calls).toContainEqual(['rpc', 'create_admin_sponsor', expect.objectContaining({
+      name_arg: 'Empresa A',
+      kind_arg: 'NORMAL',
+      media_url_arg: 'https://cdn.example/a.webp',
+      duration_seconds_arg: 12,
     })])
+    expect(calls.some(([call]) => call === 'insert')).toBe(false)
     expect(sponsor).toMatchObject({ id: 'sponsor-1', sourceType: 'supabase' })
   })
 
@@ -91,12 +121,13 @@ describe('sponsor admin flow', () => {
       active: false,
     })
 
-    expect(calls).toContainEqual(['eq', 'id', 'sponsor-1'])
-    expect(calls).toContainEqual(['update', expect.objectContaining({
-      name: 'Empresa A editada',
-      kind: 'NORMAL',
-      duration_seconds: 20,
-      active: false,
+    expect(calls).toContainEqual(['rpc', 'update_admin_sponsor', expect.objectContaining({
+      sponsor_id_arg: 'sponsor-1',
+      name_arg: 'Empresa A editada',
+      kind_arg: 'NORMAL',
+      duration_seconds_arg: 20,
+      active_arg: false,
     })])
+    expect(calls.some(([call]) => call === 'update')).toBe(false)
   })
 })
