@@ -235,6 +235,16 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
 
   const handleEditAd = async () => {
     if (!editingAd) return
+    const ad = normalizeAd(editingAd)
+
+    if (!ad.name.trim()) {
+      toast.error('Digite um nome para o patrocínio')
+      return
+    }
+    if (!ad.src.trim()) {
+      toast.error('Adicione uma imagem, vídeo ou link')
+      return
+    }
 
     if (uploadingMedia) {
       toast.error('Aguarde o upload terminar antes de salvar')
@@ -243,7 +253,8 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
 
     setSavingAd(true)
     try {
-      await updateAd(editingAd.id, normalizeAd(editingAd))
+      const updatedAd = await updateAd(editingAd.id, ad)
+      if (!updatedAd) throw new Error('O banco não retornou o patrocínio atualizado')
       toast.success('Patrocínio atualizado')
       setEditDialogOpen(false)
       setEditingAd(null)
