@@ -11,6 +11,7 @@ import AppFooter from '@/components/shared/app-footer'
 import PaginationControls from '@/components/shared/pagination-controls'
 import PageContainer from '@/components/layout/page-container'
 import LoadingState from '@/components/shared/loading-state'
+import EmptyState from '@/components/shared/empty-state'
 import PublicNavbar from '@/components/shared/public-navbar'
 import StaticMediaFrame from '@/components/shared/static-media-frame'
 import { normalizeSocialLinks } from '@/components/shared/social-links'
@@ -377,13 +378,18 @@ export default function PublicDashboardPage() {
             </div>
 
             {filteredAdvertisers.length === 0 ? (
-              <div className="text-sm text-muted-foreground">Nenhum patrocinador encontrado para essa busca.</div>
+              <EmptyState
+                icon={Search}
+                title="Nenhum patrocinador encontrado"
+                description="Ajuste o termo de busca para localizar um patrocinador cadastrado."
+                className="bg-transparent"
+              />
             ) : (
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                   {paginatedAdvertisers.map((ad) => (
-                    <Link key={ad.id} href={`/anunciantes/${ad.id}`}>
-                      <Card className="h-full transition-colors hover:border-primary/50">
+                    <Card key={ad.id} className="h-full transition-colors hover:border-primary/50">
+                      <Link href={`/anunciantes/${ad.id}`} className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
                         <CardContent className="flex items-center gap-3 p-4">
                           <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-black">
                             <Media ad={ad} className="h-full w-full object-contain" staticFrame />
@@ -402,20 +408,22 @@ export default function PublicDashboardPage() {
                               <span>{ad.type === 'MASTER' ? '/telao-master' : '/telao'}</span>
                             </div>
                           </div>
-                          {isSafePublicUrl(ad.websiteUrl) ? (
-                            <a
-                              href={ad.websiteUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(event) => event.stopPropagation()}
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                          ) : null}
                         </CardContent>
-                      </Card>
-                    </Link>
+                      </Link>
+                      {isSafePublicUrl(ad.websiteUrl) ? (
+                        <div className="border-t border-border/70 px-4 py-3">
+                          <a
+                            href={ad.websiteUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Site do patrocinador
+                          </a>
+                        </div>
+                      ) : null}
+                    </Card>
                   ))}
                 </div>
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { AlertTriangle, Check, Database, Download, Monitor, Palette, Plus, RotateCcw, Save, Trash2, Upload } from 'lucide-react'
+import { AlertTriangle, Check, Database, Download, Eye, EyeOff, Monitor, Palette, Plus, RotateCcw, Save, Trash2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -61,6 +61,125 @@ export function SettingsHeader({ onReset, onSave, hasChanges, isSaving }) {
 
 export function SettingsTabs({ children }) {
   return <div className="space-y-6">{children}</div>
+}
+
+export function AccountSettingsSection({
+  account,
+  onAccountChange,
+  onSaveAccount,
+  isLoading,
+  isSaving,
+}) {
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const passwordMismatch =
+    account.newPassword.length > 0
+    && account.confirmPassword.length > 0
+    && account.newPassword !== account.confirmPassword
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Dados de login</CardTitle>
+        <CardDescription>Atualize o email de acesso, o nome do perfil e a senha do usuário autenticado.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="account-email">Email de acesso</Label>
+            <Input
+              id="account-email"
+              type="email"
+              value={account.email}
+              onChange={(event) => onAccountChange('email', event.target.value)}
+              disabled={isLoading || isSaving}
+              autoComplete="email"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="account-display-name">Nome do perfil</Label>
+            <Input
+              id="account-display-name"
+              value={account.displayName}
+              onChange={(event) => onAccountChange('displayName', event.target.value)}
+              disabled={isLoading || isSaving}
+              autoComplete="name"
+            />
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-border p-4">
+          <div>
+            <Label>Alterar senha</Label>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Deixe em branco para manter a senha atual.
+            </p>
+          </div>
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="account-new-password">Nova senha</Label>
+              <div className="relative">
+                <Input
+                  id="account-new-password"
+                  type={showNewPassword ? 'text' : 'password'}
+                  value={account.newPassword}
+                  onChange={(event) => onAccountChange('newPassword', event.target.value)}
+                  disabled={isLoading || isSaving}
+                  autoComplete="new-password"
+                  minLength={6}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword((value) => !value)}
+                  disabled={isLoading || isSaving}
+                  className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                  aria-label={showNewPassword ? 'Ocultar nova senha' : 'Mostrar nova senha'}
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="account-confirm-password">Confirmar nova senha</Label>
+              <div className="relative">
+                <Input
+                  id="account-confirm-password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  value={account.confirmPassword}
+                  onChange={(event) => onAccountChange('confirmPassword', event.target.value)}
+                  disabled={isLoading || isSaving}
+                  autoComplete="new-password"
+                  minLength={6}
+                  aria-invalid={passwordMismatch}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((value) => !value)}
+                  disabled={isLoading || isSaving}
+                  className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                  aria-label={showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {passwordMismatch ? (
+                <p className="text-xs text-destructive">As senhas não conferem.</p>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <Button onClick={onSaveAccount} disabled={isLoading || isSaving || passwordMismatch} className="gap-2">
+            {isSaving ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+            {isSaving ? 'Salvando...' : 'Salvar dados de login'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
 }
 
 export function TelaoSettingsSection({ settings, updateSettings }) {

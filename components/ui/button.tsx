@@ -41,8 +41,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function 
   ref
 ) {
   const Comp: React.ElementType = asChild ? Slot : "button"
+  const safeProps = asChild ? props : { type: "button", ...props }
+
   return React.createElement(Comp, {
-    ...props,
+    ...safeProps,
     ref,
     className: cn(buttonVariants({ variant, size, className })),
   })

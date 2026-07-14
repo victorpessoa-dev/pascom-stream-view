@@ -13,8 +13,8 @@ import AppFooter from '@/components/shared/app-footer'
 import PublicNavbar from '@/components/shared/public-navbar'
 
 const loginErrorMessages = {
-  admin_required: 'Sua conta entrou, mas nao possui permissao administrativa.',
-  missing_supabase_env: 'A configuracao do Supabase nao foi encontrada no servidor.',
+  admin_required: 'Sua conta entrou, mas não possui permissão administrativa.',
+  missing_supabase_env: 'A configuração do Supabase não foi encontrada no servidor.',
 }
 
 function LoginForm() {

@@ -45,8 +45,14 @@ const publicLinks = [
   { title: 'Abrir /telao-master', href: '/telao-master', icon: Play, target: '_blank' },
 ]
 
+function getInitialCollapsed() {
+  if (typeof window === 'undefined') return true
+  if (window.innerWidth < 1280) return true
+  return localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true'
+}
+
 export default function AppSidebar() {
-  const [collapsed, setCollapsed] = useState(true)
+  const [collapsed, setCollapsed] = useState(getInitialCollapsed)
   const pathname = usePathname()
   const { overlays, ads, isLoaded } = useStore()
 

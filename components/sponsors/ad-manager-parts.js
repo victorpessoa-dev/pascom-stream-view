@@ -114,7 +114,7 @@ export function SponsorForm({ ad, setAd, getTypeDuration, onUpload, onUploadStat
         />
         {hasUploadedMedia ? (
           <p className="text-xs text-muted-foreground">
-            Upload anexado. Clique em Salvar para gravar esta midia no patrocinio.
+            Upload anexado. Clique em Salvar para gravar esta mídia no patrocínio.
           </p>
         ) : null}
       </div>

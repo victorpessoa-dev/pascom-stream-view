@@ -89,6 +89,50 @@ flowchart TD
 - Store client-side, services, repositories, mappers, Supabase RPC/RLS, upload de midia, cache local do telao e testes Vitest.
 - Componentes base de UI (`Button`, `Card`, `Input`), paginacao e preview estatico de midia.
 
+### Rodada Complementar de Julho/2026
+
+#### Escopo Auditado
+
+- Scripts de qualidade: `lint`, `typecheck`, `test` e `build`.
+- Fluxos públicos: home pública, busca/lista de patrocinadores, relatório público de anunciante e login.
+- Fluxos administrativos: shell/sidebar mobile, painel do telão, toolbar/lista de patrocinadores e formulário de mídia.
+- Serviços críticos: normalização de URLs de mídia, player do telão, upload e mensagens de erro.
+
+#### Problemas Encontrados
+
+- A listagem pública de patrocinadores renderizava um link de site dentro do link do card, HTML inválido que pode gerar warning de hidratação e comportamento de clique inconsistente.
+- O componente base `Button` não definia `type` por padrão. Em formulários, botões sem `type` podem disparar submit acidental.
+- Estados vazios estavam implementados de forma local e visualmente inconsistente entre áreas públicas e administrativas.
+- Algumas mensagens operacionais estavam sem acentos, reduzindo polimento e clareza para operadores.
+- A validação administrativa aceitava qualquer string iniciada por `/` como URL relativa de mídia, incluindo formas ambíguas como `//host`.
+
+#### Bugs Corrigidos
+
+- Removido o aninhamento de anchors na lista pública de patrocinadores.
+- Botões base agora usam `type="button"` quando não recebem `asChild`, preservando `type="submit"` quando explicitamente informado.
+- URLs relativas de mídia agora aceitam apenas caminhos internos de barra única, bloqueando `//...` e barras invertidas.
+- Mensagens de login, upload, player e exportação pública foram refinadas.
+
+#### Melhorias de UI/UX
+
+- Criado `components/shared/empty-state.js` para padronizar estados vazios com ícone, título, descrição e ação opcional.
+- Página pública passou a exibir empty state consistente quando a busca não encontra patrocinadores.
+- Painel de patrocinadores passou a usar o mesmo padrão visual para lista vazia e busca sem resultados.
+- Link externo do patrocinador foi separado em uma ação própria, mantendo foco, hover e navegação previsíveis.
+
+#### Performance e Segurança
+
+- Não foram adicionadas dependências.
+- A mudança de `Button` reduz risco de submits e renders de erro decorrentes de ações acidentais.
+- A validação de URL reduz superfície para fontes ambíguas em mídia cadastrada.
+
+#### Validação
+
+- `npm run lint`: aprovado.
+- `npm run typecheck`: aprovado.
+- `npm test`: 14 arquivos e 49 testes aprovados.
+- `npm run build`: aprovado fora do sandbox por exigir spawn de workers do Next/Turbopack.
+
 ### Melhorias Implementadas
 
 - `StoreProvider` ficou restrito ao grupo administrativo, evitando consultas administrativas em rotas publicas.

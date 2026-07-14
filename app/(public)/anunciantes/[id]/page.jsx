@@ -210,7 +210,7 @@ export default function AnuncianteDetalhePage() {
           ],
         },
         {
-          name: 'Horarios no telao',
+          name: 'Horários no telão',
           rows: [
             ['Exibição', 'Entrada ISO', 'Entrada formatada', 'Saída estimada ISO', 'Saída estimada formatada', 'Duração (s)', 'Duração formatada', 'Origem'],
             ...chronologicalLogs.map((log, index) => {

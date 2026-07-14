@@ -85,7 +85,7 @@ export default function TelaoPlayer({ kind = 'NORMAL', backgroundMode = 'auto' }
     try {
       const response = await fetch('/api/ads-novenario', { cache: 'no-store' })
       const payload = await response.json()
-      if (!response.ok) throw new Error(payload.error || 'Falha ao carregar anuncios')
+      if (!response.ok) throw new Error(payload.error || 'Falha ao carregar anúncios')
 
       const filteredAds = (payload.ads || []).filter((ad) => ad.type === kind)
       const mergedSettings = payload.sponsorSettings || emptyTelaoSettings

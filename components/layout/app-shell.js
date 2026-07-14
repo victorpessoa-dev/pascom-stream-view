@@ -6,9 +6,25 @@ import AppSidebar from '@/components/layout/app-sidebar'
 import AppFooter from '@/components/shared/app-footer'
 import { Button } from '@/components/ui/button'
 
+const SIDEBAR_STORAGE_KEY = 'pascom:admin-sidebar-collapsed'
+
+function getInitialAdminLayout() {
+  if (typeof window === 'undefined') {
+    return { sidebarWidth: 72, isMobileAdmin: false }
+  }
+
+  const isMobileAdmin = window.innerWidth < 768
+  const collapsed = window.innerWidth < 1280 || localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true'
+
+  return {
+    sidebarWidth: isMobileAdmin ? 0 : collapsed ? 72 : 260,
+    isMobileAdmin,
+  }
+}
+
 export default function AppShell({ children }) {
-  const [sidebarWidth, setSidebarWidth] = useState(72)
-  const [isMobileAdmin, setIsMobileAdmin] = useState(false)
+  const [sidebarWidth, setSidebarWidth] = useState(() => getInitialAdminLayout().sidebarWidth)
+  const [isMobileAdmin, setIsMobileAdmin] = useState(() => getInitialAdminLayout().isMobileAdmin)
 
   useEffect(() => {
     const updateWidth = () => {
@@ -42,14 +58,14 @@ export default function AppShell({ children }) {
           <img src="/brand/icon-logo.svg" alt="" className="mx-auto h-12 w-12 object-contain" />
           <h1 className="mt-5 text-xl font-semibold text-foreground">Painel administrativo</h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            O admin nao funciona em modo mobile. Acesse pelo computador ou por uma tela maior.
+            O admin não funciona em modo mobile. Acesse pelo computador ou por uma tela maior.
           </p>
           <div className="mt-6 grid gap-2">
             <Button asChild>
-              <Link href="/">Pagina publica</Link>
+              <Link href="/">Página pública</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/telao">Abrir telao</Link>
+              <Link href="/telao">Abrir telão</Link>
             </Button>
           </div>
         </div>

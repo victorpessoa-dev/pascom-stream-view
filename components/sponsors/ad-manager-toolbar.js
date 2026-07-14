@@ -1,9 +1,10 @@
 'use client'
 
-import { Copy, Plus, Search } from 'lucide-react'
+import { Copy, Megaphone, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import EmptyState from '@/components/shared/empty-state'
 
 export function AdManagerToolbar({
   searchTerm,
@@ -26,8 +27,8 @@ export function AdManagerToolbar({
     <section className="flex flex-col gap-4 border-b border-border/70 pb-5">
       <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Playlist publica</div>
-          <h2 className="mt-1 text-xl font-semibold text-foreground">Patrocinios cadastrados</h2>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Playlist pública</div>
+          <h2 className="mt-1 text-xl font-semibold text-foreground">Patrocínios cadastrados</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Ative, edite e acompanhe os patrocinadores a partir de uma lista operacional mais enxuta.
           </p>
@@ -35,7 +36,7 @@ export function AdManagerToolbar({
 
         <Button onClick={onOpenCreateDialog} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
-          Novo patrocinio
+          Novo patrocínio
         </Button>
       </div>
 
@@ -54,7 +55,7 @@ export function AdManagerToolbar({
           <div className="flex items-center justify-between gap-4">
             <div>
               <label htmlFor="metrics-enabled" className="cursor-pointer text-sm font-medium text-foreground">
-                Contador do telao
+                Contador do telão
               </label>
               <div className="mt-1 text-xs text-muted-foreground">
                 Conta apenas tipos com patrocinadores ativos.
@@ -118,23 +119,19 @@ export function AdManagerEmptyState({ orderedAdsLength, filteredAdsLength, onCle
   const noResults = orderedAdsLength > 0 && filteredAdsLength === 0
 
   return (
-    <div className="flex flex-col items-center justify-center border border-dashed border-border py-16 text-center">
-      <div className="mb-4 h-10 w-10 rounded-full bg-muted/70 p-2 text-muted-foreground">
-        <Search className="h-full w-full" />
-      </div>
-      <h3 className="text-lg font-semibold text-foreground">
-        {orderedAdsLength === 0 ? 'Nenhum patrocinio cadastrado' : 'Nenhum resultado encontrado'}
-      </h3>
-      <p className="mt-2 max-w-md text-sm text-muted-foreground">
-        {orderedAdsLength === 0
-          ? 'Adicione anuncios para montar a playlist publica do telao.'
-          : 'Tente outro termo para localizar o patrocinador no painel do telao.'}
-      </p>
-      {noResults && onClearSearch ? (
+    <EmptyState
+      icon={orderedAdsLength === 0 ? Megaphone : Search}
+      title={orderedAdsLength === 0 ? 'Nenhum patrocínio cadastrado' : 'Nenhum resultado encontrado'}
+      description={
+        orderedAdsLength === 0
+          ? 'Adicione anúncios para montar a playlist pública do telão.'
+          : 'Tente outro termo para localizar o patrocinador no painel do telão.'
+      }
+      action={noResults && onClearSearch ? (
         <Button className="mt-4" variant="outline" onClick={onClearSearch}>
           Limpar busca
         </Button>
       ) : null}
-    </div>
+    />
   )
 }
