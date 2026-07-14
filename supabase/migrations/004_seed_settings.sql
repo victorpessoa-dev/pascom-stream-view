@@ -90,11 +90,6 @@ values (
       "parishProfile": "",
       "parishLogoUrl": "/brand/icon-logo.svg",
       "parishCoverUrl": "",
-      "parishInstagramUrl": "",
-      "parishFacebookUrl": "",
-      "parishYoutubeUrl": "",
-      "parishWhatsappUrl": "",
-      "parishWebsiteUrl": "",
       "parishSocialLinks": []
     }
   }'::jsonb
@@ -122,17 +117,17 @@ set value = (value - 'overlay' - 'advanced') || jsonb_build_object(
     "parishProfile": "",
     "parishLogoUrl": "/brand/icon-logo.svg",
     "parishCoverUrl": "",
-    "parishInstagramUrl": "",
-    "parishFacebookUrl": "",
-    "parishYoutubeUrl": "",
-    "parishWhatsappUrl": "",
-    "parishWebsiteUrl": "",
     "parishSocialLinks": []
   }'::jsonb || (
     coalesce(value->'appearance', '{}'::jsonb)
       - 'accentColor'
       - 'animationsEnabled'
       - 'compactMode'
+      - 'parishInstagramUrl'
+      - 'parishFacebookUrl'
+      - 'parishYoutubeUrl'
+      - 'parishWhatsappUrl'
+      - 'parishWebsiteUrl'
   )
 )
 where key = 'admin_settings';

@@ -10,6 +10,7 @@ import PaginationControls from '@/components/shared/pagination-controls'
 import AppFooter from '@/components/shared/app-footer'
 import LoadingState from '@/components/shared/loading-state'
 import PageContainer from '@/components/layout/page-container'
+import PublicNavbar from '@/components/shared/public-navbar'
 import { TimeSeriesLineChart } from '@/components/shared/simple-charts'
 import { downloadWorkbook } from '@/lib/export/simple-xlsx'
 
@@ -241,6 +242,7 @@ export default function AnuncianteDetalhePage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <PublicNavbar />
       <PageContainer>
         <Link href="/" className="inline-flex items-center gap-2 text-sm text-primary hover:underline">
           <ArrowLeft className="h-4 w-4" />

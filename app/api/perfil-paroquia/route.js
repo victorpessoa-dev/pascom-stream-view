@@ -8,11 +8,6 @@ const emptyProfile = {
   parishProfile: '',
   parishLogoUrl: '/brand/icon-logo.svg',
   parishCoverUrl: '',
-  parishInstagramUrl: '',
-  parishFacebookUrl: '',
-  parishYoutubeUrl: '',
-  parishWhatsappUrl: '',
-  parishWebsiteUrl: '',
   parishSocialLinks: [],
 }
 

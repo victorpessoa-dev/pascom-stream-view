@@ -19,11 +19,6 @@ values (
       "parishProfile": "",
       "parishLogoUrl": "/brand/icon-logo.svg",
       "parishCoverUrl": "",
-      "parishInstagramUrl": "",
-      "parishFacebookUrl": "",
-      "parishYoutubeUrl": "",
-      "parishWhatsappUrl": "",
-      "parishWebsiteUrl": "",
       "parishSocialLinks": []
     }
   }'::jsonb
@@ -51,17 +46,17 @@ set value = (value - 'overlay' - 'advanced') || jsonb_build_object(
     "parishProfile": "",
     "parishLogoUrl": "/brand/icon-logo.svg",
     "parishCoverUrl": "",
-    "parishInstagramUrl": "",
-    "parishFacebookUrl": "",
-    "parishYoutubeUrl": "",
-    "parishWhatsappUrl": "",
-    "parishWebsiteUrl": "",
     "parishSocialLinks": []
   }'::jsonb || (
     coalesce(value->'appearance', '{}'::jsonb)
       - 'accentColor'
       - 'animationsEnabled'
       - 'compactMode'
+      - 'parishInstagramUrl'
+      - 'parishFacebookUrl'
+      - 'parishYoutubeUrl'
+      - 'parishWhatsappUrl'
+      - 'parishWebsiteUrl'
   )
 )
 where key = 'admin_settings';
@@ -125,11 +120,6 @@ as $$
     'parishProfile', coalesce(settings.value #>> '{appearance,parishProfile}', ''),
     'parishLogoUrl', coalesce(nullif(settings.value #>> '{appearance,parishLogoUrl}', ''), '/brand/icon-logo.svg'),
     'parishCoverUrl', coalesce(settings.value #>> '{appearance,parishCoverUrl}', ''),
-    'parishInstagramUrl', coalesce(settings.value #>> '{appearance,parishInstagramUrl}', ''),
-    'parishFacebookUrl', coalesce(settings.value #>> '{appearance,parishFacebookUrl}', ''),
-    'parishYoutubeUrl', coalesce(settings.value #>> '{appearance,parishYoutubeUrl}', ''),
-    'parishWhatsappUrl', coalesce(settings.value #>> '{appearance,parishWhatsappUrl}', ''),
-    'parishWebsiteUrl', coalesce(settings.value #>> '{appearance,parishWebsiteUrl}', ''),
     'parishSocialLinks', coalesce(settings.value #> '{appearance,parishSocialLinks}', '[]'::jsonb)
   )
   from (

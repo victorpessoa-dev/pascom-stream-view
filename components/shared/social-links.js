@@ -1,7 +1,7 @@
 'use client'
 
 import { Facebook, Globe, Instagram, Music2, Send, Youtube } from 'lucide-react'
-import { isSafePublicUrl } from '@/lib/utils/url'
+import { isSafePublicUrl, normalizePublicUrl } from '@/lib/utils/url'
 
 export function WhatsAppIcon({ className }) {
   return (
@@ -10,14 +10,6 @@ export function WhatsAppIcon({ className }) {
     </svg>
   )
 }
-
-export const baseSocialLinksConfig = [
-  { key: 'parishInstagramUrl', label: 'Instagram', Icon: Instagram },
-  { key: 'parishFacebookUrl', label: 'Facebook', Icon: Facebook },
-  { key: 'parishYoutubeUrl', label: 'YouTube', Icon: Youtube },
-  { key: 'parishWhatsappUrl', label: 'WhatsApp', Icon: WhatsAppIcon },
-  { key: 'parishWebsiteUrl', label: 'Site', Icon: Globe },
-]
 
 export function getSocialIcon(label = '') {
   const normalized = label.toLowerCase()
@@ -31,30 +23,18 @@ export function getSocialIcon(label = '') {
 }
 
 export function normalizeSocialLinks(profile = {}) {
-  const fixedLinks = baseSocialLinksConfig
-    .map(({ key, label, Icon }) => ({
-      key,
-      label,
-      Icon,
-      url: String(profile[key] || '').trim(),
-    }))
-    .filter((item) => isSafePublicUrl(item.url))
-
   const extraLinks = Array.isArray(profile.parishSocialLinks) ? profile.parishSocialLinks : []
 
-  return [
-    ...fixedLinks,
-    ...extraLinks
-      .map((item, index) => {
-        const label = String(item?.label || '').trim()
-        const url = String(item?.url || '').trim()
-        return {
-          key: item?.id || `extra-${index}`,
-          label: label || 'Link',
-          url,
-          Icon: getSocialIcon(label || url),
-        }
-      })
-      .filter((item) => isSafePublicUrl(item.url)),
-  ]
+  return extraLinks
+    .map((item, index) => {
+      const label = String(item?.label || '').trim()
+      const url = normalizePublicUrl(item?.url)
+      return {
+        key: item?.id || `social-${index}`,
+        label: label || 'Link',
+        url,
+        Icon: getSocialIcon(label || url),
+      }
+    })
+    .filter((item) => isSafePublicUrl(item.url))
 }

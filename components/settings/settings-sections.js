@@ -140,24 +140,9 @@ export function AppearanceSettingsSection({ settings, updateSettings, onUploadPa
     parishCity: settings.appearance.parishCity,
     parishProfile: settings.appearance.parishProfile,
     socialLinks: {
-      instagram: settings.appearance.parishInstagramUrl,
-      facebook: settings.appearance.parishFacebookUrl,
-      youtube: settings.appearance.parishYoutubeUrl,
-      whatsapp: settings.appearance.parishWhatsappUrl,
-      website: settings.appearance.parishWebsiteUrl,
       extra: extraLinks,
     },
   }
-  const baseSocialLinks = [
-    { key: 'parishInstagramUrl', label: 'Instagram', placeholder: 'https://instagram.com/sua_paroquia' },
-    { key: 'parishFacebookUrl', label: 'Facebook', placeholder: 'https://facebook.com/sua_paroquia' },
-    { key: 'parishYoutubeUrl', label: 'YouTube', placeholder: 'https://youtube.com/@sua_paroquia' },
-    { key: 'parishWhatsappUrl', label: 'WhatsApp', placeholder: 'https://wa.me/5511999999999' },
-    { key: 'parishWebsiteUrl', label: 'Site', placeholder: 'https://sua-paroquia.com.br' },
-  ]
-  const activeBaseSocialLinks = baseSocialLinks.filter((item) => String(settings.appearance[item.key] || '').trim())
-  const hasSocialLinks = activeBaseSocialLinks.length > 0 || extraLinks.length > 0
-
   const updateExtraLink = (index, key, value) => {
     updateSettings(
       'appearance',
@@ -255,34 +240,22 @@ export function AppearanceSettingsSection({ settings, updateSettings, onUploadPa
                   <p className="text-sm text-muted-foreground">Links exibidos no canto inferior da capa pública.</p>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm text-muted-foreground">
-                    Adicione apenas as redes que deseja exibir.
-                  </p>
+                  <div>
+                    <Label>Links adicionados</Label>
+                    <p className="text-sm text-muted-foreground">Adicione Instagram, WhatsApp, YouTube, site ou outro canal.</p>
+                  </div>
                   <Button type="button" variant="outline" size="sm" onClick={addExtraLink}>
                     <Plus className="mr-2 h-4 w-4" />
                     Adicionar
                   </Button>
                 </div>
 
-                {!hasSocialLinks ? (
+                {extraLinks.length === 0 ? (
                   <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
                     Nenhuma rede social adicionada.
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {activeBaseSocialLinks.map((item) => (
-                      <div key={item.key} className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[0.8fr_1.2fr_auto]">
-                        <Input value={item.label} disabled aria-label="Rede social" />
-                        <Input
-                          value={settings.appearance[item.key] || ''}
-                          onChange={(e) => updateSettings('appearance', item.key, e.target.value)}
-                          placeholder={item.placeholder}
-                        />
-                        <Button type="button" variant="outline" size="icon" onClick={() => updateSettings('appearance', item.key, '')} aria-label="Remover rede social">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
                     {extraLinks.map((item, index) => (
                       <div key={index} className="grid gap-3 rounded-lg border border-border p-3 sm:grid-cols-[0.8fr_1.2fr_auto]">
                         <Input value={item.label || ''} onChange={(e) => updateExtraLink(index, 'label', e.target.value)} placeholder="Nome da rede" />

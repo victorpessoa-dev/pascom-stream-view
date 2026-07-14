@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import AppFooter from '@/components/shared/app-footer'
+import PublicNavbar from '@/components/shared/public-navbar'
 
 const loginErrorMessages = {
   admin_required: 'Sua conta entrou, mas nao possui permissao administrativa.',
@@ -52,6 +53,7 @@ function LoginForm() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
+      <PublicNavbar showLogin={false} />
       <div className="flex flex-1 items-center justify-center p-6">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-4 text-center">

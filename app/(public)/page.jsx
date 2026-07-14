@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, Church, Clock, Eye, ExternalLink, MapPin, Megaphone, Play, RefreshCw, Search, Star } from 'lucide-react'
+import { AlertTriangle, Church, Clock, Eye, ExternalLink, LogIn, MapPin, Megaphone, Play, RefreshCw, Search, Star } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,6 +11,7 @@ import AppFooter from '@/components/shared/app-footer'
 import PaginationControls from '@/components/shared/pagination-controls'
 import PageContainer from '@/components/layout/page-container'
 import LoadingState from '@/components/shared/loading-state'
+import PublicNavbar from '@/components/shared/public-navbar'
 import StaticMediaFrame from '@/components/shared/static-media-frame'
 import { normalizeSocialLinks } from '@/components/shared/social-links'
 import { isSafePublicUrl } from '@/lib/utils/url'
@@ -46,11 +47,6 @@ export default function PublicDashboardPage() {
     parishProfile: '',
     parishLogoUrl: '',
     parishCoverUrl: '',
-    parishInstagramUrl: '',
-    parishFacebookUrl: '',
-    parishYoutubeUrl: '',
-    parishWhatsappUrl: '',
-    parishWebsiteUrl: '',
     parishSocialLinks: [],
   })
   const [loading, setLoading] = useState(true)
@@ -197,36 +193,13 @@ export default function PublicDashboardPage() {
   return (
     <div className="min-h-screen bg-background">
       <div
-        className={`fixed inset-x-0 top-0 z-50 border-b border-border bg-background/90 shadow-sm backdrop-blur transition-all duration-200 ${
-          showParishNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+        className={`fixed inset-x-0 top-0 z-50 transition-all duration-200 ${
+          showParishNav ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-full opacity-0'
         }`}
       >
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-          <Link href="/" className="flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border/60">
-              <img src={parishInfo.parishLogoUrl || '/brand/icon-logo.svg'} alt="" className="h-full w-full object-cover" />
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold">{parishInfo.parishName || 'PASCOM Stream View'}</span>
-              {parishInfo.parishCity ? <span className="block truncate text-xs text-muted-foreground">{parishInfo.parishCity}</span> : null}
-            </span>
-          </Link>
-          <Button asChild size="sm" variant="outline">
-            <Link href="/login">Entrar</Link>
-          </Button>
-        </div>
+        <PublicNavbar />
       </div>
-
       <PageContainer>
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <Link href="/" className="inline-flex w-fit items-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <img src="/brand/emblema-16-9.svg" alt="PASCOM Stream View" className="h-12 w-auto object-contain sm:h-14" />
-          </Link>
-          <Button asChild variant="outline" className="w-full sm:w-auto">
-            <Link href="/login">Entrar</Link>
-          </Button>
-        </header>
-
         {loadError ? (
           <div className="flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
@@ -248,6 +221,14 @@ export default function PublicDashboardPage() {
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.16),_transparent_34%),linear-gradient(135deg,_rgba(59,130,246,0.28),_rgba(15,23,42,0.92))]" />
             )}
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/5" />
+            <div className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
+              <Button asChild size="sm" className="bg-background/88 text-foreground shadow-lg backdrop-blur hover:bg-background">
+                <Link href="/login">
+                  <LogIn className="h-4 w-4" />
+                  Entrar
+                </Link>
+              </Button>
+            </div>
 
             <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-4 sm:p-6">
               <div className="flex min-w-0 items-center gap-3 pr-12 text-left sm:gap-4 sm:pr-32">
@@ -378,7 +359,7 @@ export default function PublicDashboardPage() {
             )}
           </div>
 
-          <div className="space-y-4">
+          <div id="patrocinadores" className="scroll-mt-24 space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-lg font-semibold">Patrocinadores</h2>
