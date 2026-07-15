@@ -2,13 +2,10 @@
 
 import { Copy, Megaphone, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import EmptyState from '@/components/shared/empty-state'
 
 export function AdManagerToolbar({
-  searchTerm,
-  onSearchChange,
   onCopyPublicUrl,
   onOpenCreateDialog,
   metricsEnabled,
@@ -24,9 +21,9 @@ export function AdManagerToolbar({
   const hasAnyActiveSponsor = normalActiveCount > 0 || masterActiveCount > 0
 
   return (
-    <section className="flex flex-col gap-4 border-b border-border/70 pb-5">
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-        <div>
+    <section className="space-y-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
           <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Playlist pública</div>
           <h2 className="mt-1 text-xl font-semibold text-foreground">Patrocínios cadastrados</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -40,55 +37,40 @@ export function AdManagerToolbar({
         </Button>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(240px,320px)_1fr_auto] lg:items-center">
-        <div className="relative min-w-0">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={searchTerm}
-            onChange={onSearchChange}
-            placeholder="Buscar patrocinador, tipo ou site"
-            className="pl-9"
-          />
-        </div>
-
-        <div className="rounded-lg border border-border/80 p-3">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <label htmlFor="metrics-enabled" className="cursor-pointer text-sm font-medium text-foreground">
+      <div className="grid grid-cols-1 gap-3 rounded-xl border border-border/80 bg-card p-3 shadow-[0_1px_2px_oklch(0.18_0.02_250/0.03)] lg:grid-cols-2 lg:items-stretch">
+        <div className="rounded-lg border border-border/50 px-3 py-2.5">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+            <div className="min-w-0 flex-1">
+              <label htmlFor="metrics-enabled" className="cursor-pointer text-xs font-medium text-foreground/90">
                 Contador do telão
               </label>
-              <div className="mt-1 text-xs text-muted-foreground">
-                Conta apenas tipos com patrocinadores ativos.
-              </div>
+              <div className="mt-0.5 text-[11px] text-muted-foreground">Registro de exibições por tipo</div>
             </div>
             <Switch
               id="metrics-enabled"
+              className="scale-90 opacity-80 transition-opacity hover:opacity-100"
               checked={metricsEnabled}
               disabled={!hasAnyActiveSponsor}
               onCheckedChange={onMetricsToggle}
             />
-          </div>
 
-          <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            <label className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2 text-xs">
-              <span>
-                <span className="block font-medium text-foreground">NORMAL</span>
-                <span className="text-muted-foreground">{normalActiveCount} ativo(s)</span>
-              </span>
+            <div className="hidden h-5 w-px bg-border sm:block" />
+
+            <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              <span><span className="font-medium text-foreground/80">NORMAL</span> · {normalActiveCount}</span>
               <Switch
                 id="metrics-normal"
+                className="scale-75 opacity-70 transition-opacity hover:opacity-100"
                 checked={metricsEnabled && !normalPaused}
                 disabled={normalActiveCount === 0}
                 onCheckedChange={(checked) => onMetricsPauseToggle('NORMAL', !checked)}
               />
             </label>
-            <label className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2 text-xs">
-              <span>
-                <span className="block font-medium text-foreground">MASTER</span>
-                <span className="text-muted-foreground">{masterActiveCount} ativo(s)</span>
-              </span>
+            <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
+              <span><span className="font-medium text-foreground/80">MASTER</span> · {masterActiveCount}</span>
               <Switch
                 id="metrics-master"
+                className="scale-75 opacity-70 transition-opacity hover:opacity-100"
                 checked={metricsEnabled && !masterPaused}
                 disabled={masterActiveCount === 0}
                 onCheckedChange={(checked) => onMetricsPauseToggle('MASTER', !checked)}
@@ -96,19 +78,25 @@ export function AdManagerToolbar({
             </label>
           </div>
           {!hasAnyActiveSponsor ? (
-            <div className="mt-2 text-xs text-destructive">Ative um patrocinador NORMAL ou MASTER para ligar o contador.</div>
+            <div className="mt-2 text-[11px] text-destructive/80">Ative um patrocinador para ligar o contador.</div>
           ) : null}
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => onCopyPublicUrl('/telao')}>
-            <Copy className="mr-2 h-4 w-4" />
-            /telao
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => onCopyPublicUrl('/telao-master')}>
-            <Copy className="mr-2 h-4 w-4" />
-            /telao-master
-          </Button>
+        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-3 rounded-lg border border-border/50 px-3 py-2.5">
+          <div className="min-w-0 flex-1">
+            <div className="text-xs font-medium text-foreground/90">LINK</div>
+            <div className="mt-0.5 text-[11px] text-muted-foreground">Copiar endereço público</div>
+          </div>
+          <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
+            <Button variant="outline" size="sm" onClick={() => onCopyPublicUrl('/telao')} className="min-w-32 justify-start">
+              <Copy className="mr-2 h-4 w-4" />
+              /telao
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => onCopyPublicUrl('/telao-master')} className="min-w-32 justify-start">
+              <Copy className="mr-2 h-4 w-4" />
+              /telao-master
+            </Button>
+          </div>
         </div>
       </div>
     </section>

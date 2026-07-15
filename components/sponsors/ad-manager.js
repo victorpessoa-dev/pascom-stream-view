@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Edit2, ExternalLink, Trash2 } from 'lucide-react'
+import { Edit2, ExternalLink, Search, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useStore } from '@/lib/store/store'
-import { uploadMedia } from '@/services/supabase/upload'
+import { deleteUploadedMedia, uploadMedia } from '@/services/supabase/upload'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import LoadingState from '@/components/shared/loading-state'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Switch } from '@/components/ui/switch'
@@ -31,6 +32,7 @@ import {
 import PaginationControls from '@/components/shared/pagination-controls'
 import { MediaPreview, SponsorForm, TypeBadge } from '@/components/sponsors/ad-manager-parts'
 import { AdManagerEmptyState, AdManagerToolbar } from '@/components/sponsors/ad-manager-toolbar'
+import { validatePublicVideoSource } from '@/lib/utils/video-source'
 
 const ADMIN_PAGE_SIZE = 10
 
@@ -167,8 +169,11 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
   const normalizeAd = useCallback((ad) => ({
     ...ad,
     mediaType: ad.mediaType === 'video' ? 'video' : 'image',
-    duration: Math.max(3, Number(ad.duration) || 10),
-  }), [])
+    duration: Math.min(
+      Math.max(3, Number(getTypeDuration(ad.type)) || 3),
+      Math.max(3, Number(ad.duration) || 10)
+    ),
+  }), [getTypeDuration])
 
   const updateMetricsEnabled = useCallback(async (checked) => {
     if (checked && activeSponsorCounts.NORMAL === 0 && activeSponsorCounts.MASTER === 0) {
@@ -222,6 +227,7 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
 
     setSavingAd(true)
     try {
+      if (ad.mediaType === 'video') await validatePublicVideoSource(ad.src)
       await createAd(ad)
       toast.success(`Patrocínio "${ad.name}" criado`)
       setDialogOpen(false)
@@ -253,8 +259,17 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
 
     setSavingAd(true)
     try {
+      if (ad.mediaType === 'video') await validatePublicVideoSource(ad.src)
+      const previousMediaUrl = ads.find((item) => item.id === editingAd.id)?.src || ''
       const updatedAd = await updateAd(editingAd.id, ad)
       if (!updatedAd) throw new Error('O banco não retornou o patrocínio atualizado')
+      if (previousMediaUrl && previousMediaUrl !== updatedAd.src) {
+        try {
+          await deleteUploadedMedia(previousMediaUrl)
+        } catch {
+          toast.warning('Patrocínio atualizado, mas o arquivo antigo não pôde ser excluído do armazenamento')
+        }
+      }
       toast.success('Patrocínio atualizado')
       setEditDialogOpen(false)
       setEditingAd(null)
@@ -269,8 +284,12 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
     if (!adPendingDelete) return
 
     try {
-      await deleteAd(adPendingDelete.id)
-      toast.success(`Patrocínio "${adPendingDelete.name}" excluído`)
+      const result = await deleteAd(adPendingDelete.id)
+      if (result?.storageErrors?.length) {
+        toast.warning(`Patrocínio "${adPendingDelete.name}" excluído, mas um arquivo não pôde ser removido`)
+      } else {
+        toast.success(`Patrocínio "${adPendingDelete.name}" excluído`)
+      }
       setAdPendingDelete(null)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao excluir patrocínio')
@@ -289,8 +308,6 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
   return (
     <div className="space-y-5">
       <AdManagerToolbar
-        searchTerm={searchTerm}
-        onSearchChange={(event) => setSearchTerm(event.target.value)}
         onCopyPublicUrl={copyPublicUrl}
         metricsEnabled={sponsorSettings.metricsEnabled}
         metricsPaused={sponsorSettings.metricsPaused}
@@ -343,6 +360,25 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <div className="flex flex-col gap-3 border-b border-border/70 pb-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold text-foreground">Lista de patrocinadores</h3>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {filteredAds.length} de {orderedAds.length} patrocínio(s)
+          </p>
+        </div>
+        <div className="relative w-full sm:max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            placeholder="Buscar na lista"
+            className="pl-9"
+            aria-label="Buscar patrocinador na lista"
+          />
+        </div>
+      </div>
 
       {filteredAds.length === 0 ? (
         <AdManagerEmptyState
@@ -522,7 +558,7 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
             <DialogTitle>Editar patrocínio</DialogTitle>
             <DialogDescription>Atualize mídia, link, tipo e tempo de exibição.</DialogDescription>
           </DialogHeader>
-          {editingAd ? <SponsorForm ad={editingAd} setAd={setEditingAd} getTypeDuration={getTypeDuration} onUpload={readUpload} onUploadStateChange={setUploadingMedia} /> : null}
+          {editingAd ? <SponsorForm ad={editingAd} setAd={setEditingAd} getTypeDuration={getTypeDuration} onUpload={readUpload} onUploadStateChange={setUploadingMedia} allowMediaRemoval /> : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={savingAd || uploadingMedia}>Cancelar</Button>
             <Button onClick={handleEditAd} disabled={savingAd || uploadingMedia}>

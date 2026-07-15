@@ -56,6 +56,21 @@ import LoadingState from '@/components/shared/loading-state'
 import StaticMediaFrame from '@/components/shared/static-media-frame'
 import { resolveSnapPosition } from '@/lib/services/overlay-editor'
 
+const SAFE_AREA_RATIO = 0.05
+
+function getSafeAreaBounds(overlay) {
+  const insetX = Math.round(overlay.width * SAFE_AREA_RATIO)
+  const insetY = Math.round(overlay.height * SAFE_AREA_RATIO)
+  return {
+    left: insetX,
+    top: insetY,
+    right: overlay.width - insetX,
+    bottom: overlay.height - insetY,
+    width: overlay.width - insetX * 2,
+    height: overlay.height - insetY * 2,
+  }
+}
+
 export default function OverlayEditor({ overlayId }) {
   const { getOverlay, addElement, updateElement, deleteElement, isLoaded } = useStore()
   const router = useRouter()
@@ -63,9 +78,11 @@ export default function OverlayEditor({ overlayId }) {
   const [selectedElementId, setSelectedElementId] = useState(null)
   const [zoom, setZoom] = useState(0.5)
   const [isDragging, setIsDragging] = useState(false)
+  const [isResizing, setIsResizing] = useState(false)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [alignmentGuides, setAlignmentGuides] = useState([])
   const [showGrid, setShowGrid] = useState(true)
+  const [, setShowSafeArea] = useState(false)
   const [addImageDialogOpen, setAddImageDialogOpen] = useState(false)
   const [addTextDialogOpen, setAddTextDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -81,6 +98,9 @@ export default function OverlayEditor({ overlayId }) {
   const [alignTargetId, setAlignTargetId] = useState('canvas')
   const canvasRef = useRef(null)
   const dragPositionRef = useRef(null)
+  const resizeRef = useRef(null)
+  const resizeResultRef = useRef(null)
+  const propertyPreviewRef = useRef(null)
 
   useEffect(() => {
     if (isLoaded) {
@@ -196,8 +216,13 @@ export default function OverlayEditor({ overlayId }) {
   }
 
   const handleDeleteElement = useCallback(async (elementId) => {
+    let storageCleanupFailed = false
     try {
-      await deleteElement(overlayId, elementId)
+      const result = await deleteElement(overlayId, elementId)
+      if (result?.storageErrors?.length) {
+        storageCleanupFailed = true
+        toast.warning('Elemento excluído, mas o arquivo não pôde ser removido do armazenamento')
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao excluir elemento')
       return
@@ -205,7 +230,7 @@ export default function OverlayEditor({ overlayId }) {
     if (selectedElementId === elementId) {
       setSelectedElementId(null)
     }
-    toast.success('Elemento excluído')
+    if (!storageCleanupFailed) toast.success('Elemento excluído')
   }, [deleteElement, overlayId, selectedElementId])
 
   const requestDeleteElement = useCallback((elementId) => {
@@ -232,12 +257,6 @@ export default function OverlayEditor({ overlayId }) {
   const handleElementUpdate = (field, value) => {
     if (selectedElementId) {
       updateElement(overlayId, selectedElementId, { [field]: value })
-    }
-  }
-
-  const handleElementBatchUpdate = (updates) => {
-    if (selectedElementId) {
-      updateElement(overlayId, selectedElementId, updates)
     }
   }
 
@@ -329,7 +348,130 @@ export default function OverlayEditor({ overlayId }) {
     }
   }, [overlay])
 
+  const handleResizeMouseDown = useCallback((event, element, direction) => {
+    event.preventDefault()
+    event.stopPropagation()
+    setSelectedElementId(element.id)
+    setAlignmentGuides([])
+    setIsDragging(false)
+    dragPositionRef.current = null
+    setIsResizing(true)
+    resizeRef.current = {
+      direction,
+      elementId: element.id,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: element.x,
+      startY: element.y,
+      startWidth: element.width,
+      startHeight: element.height,
+      startCropLeft: element.cropLeft || 0,
+      startCropRight: element.cropRight || 0,
+      startCropTop: element.cropTop || 0,
+      startCropBottom: element.cropBottom || 0,
+    }
+  }, [])
+
   const handleMouseMove = useCallback((e) => {
+    if (isResizing && resizeRef.current) {
+      const state = resizeRef.current
+      const safeArea = getSafeAreaBounds(overlay)
+      const deltaX = (e.clientX - state.startClientX) / zoom
+      const deltaY = (e.clientY - state.startClientY) / zoom
+      const minSize = 20
+
+      if (state.direction.length === 1) {
+        let result
+        if (state.direction === 'w') {
+          const originalLeft = state.startX - state.startCropLeft
+          const visibleRight = state.startX + state.startWidth
+          const x = Math.max(0, originalLeft, Math.min(state.startX + deltaX, visibleRight - minSize))
+          result = { x: Math.round(x), width: Math.round(visibleRight - x), cropLeft: Math.round(x - originalLeft) }
+        } else if (state.direction === 'e') {
+          const originalRight = state.startX + state.startWidth + state.startCropRight
+          const right = Math.max(state.startX + minSize, Math.min(state.startX + state.startWidth + deltaX, originalRight, overlay.width))
+          result = { width: Math.round(right - state.startX), cropRight: Math.round(originalRight - right) }
+        } else if (state.direction === 'n') {
+          const originalTop = state.startY - state.startCropTop
+          const visibleBottom = state.startY + state.startHeight
+          const y = Math.max(0, originalTop, Math.min(state.startY + deltaY, visibleBottom - minSize))
+          result = { y: Math.round(y), height: Math.round(visibleBottom - y), cropTop: Math.round(y - originalTop) }
+        } else {
+          const originalBottom = state.startY + state.startHeight + state.startCropBottom
+          const bottom = Math.max(state.startY + minSize, Math.min(state.startY + state.startHeight + deltaY, originalBottom, overlay.height))
+          result = { height: Math.round(bottom - state.startY), cropBottom: Math.round(originalBottom - bottom) }
+        }
+
+        resizeResultRef.current = result
+        const visibleX = result.x ?? state.startX
+        const visibleY = result.y ?? state.startY
+        const visibleWidth = result.width ?? state.startWidth
+        const visibleHeight = result.height ?? state.startHeight
+        const threshold = 8 / zoom
+        setShowSafeArea(
+          visibleX <= safeArea.left + threshold ||
+          visibleY <= safeArea.top + threshold ||
+          visibleX + visibleWidth >= safeArea.right - threshold ||
+          visibleY + visibleHeight >= safeArea.bottom - threshold
+        )
+        setOverlay((current) => current ? {
+          ...current,
+          elements: current.elements.map((element) =>
+            element.id === state.elementId ? { ...element, ...result } : element
+          ),
+        } : current)
+        return
+      }
+
+      let nextX = state.startX
+      let nextY = state.startY
+      let nextWidth = state.startWidth
+      let nextHeight = state.startHeight
+
+      if (state.direction.includes('e')) nextWidth = Math.max(minSize, state.startWidth + deltaX)
+      if (state.direction.includes('s')) nextHeight = Math.max(minSize, state.startHeight + deltaY)
+      if (state.direction.includes('w')) {
+        nextWidth = Math.max(minSize, state.startWidth - deltaX)
+        nextX = state.startX + state.startWidth - nextWidth
+      }
+      if (state.direction.includes('n')) {
+        nextHeight = Math.max(minSize, state.startHeight - deltaY)
+        nextY = state.startY + state.startHeight - nextHeight
+      }
+
+      if (state.direction.includes('w') && nextX < 0) {
+        nextWidth += nextX
+        nextX = 0
+      }
+      if (state.direction.includes('n') && nextY < 0) {
+        nextHeight += nextY
+        nextY = 0
+      }
+      nextWidth = Math.max(minSize, Math.min(nextWidth, overlay.width - nextX))
+      nextHeight = Math.max(minSize, Math.min(nextHeight, overlay.height - nextY))
+
+      const result = {
+        x: Math.round(nextX),
+        y: Math.round(nextY),
+        width: Math.round(nextWidth),
+        height: Math.round(nextHeight),
+      }
+      resizeResultRef.current = result
+      setShowSafeArea(
+        result.x <= safeArea.left + 8 / zoom ||
+        result.y <= safeArea.top + 8 / zoom ||
+        result.x + result.width >= safeArea.right - 8 / zoom ||
+        result.y + result.height >= safeArea.bottom - 8 / zoom
+      )
+      setOverlay((current) => current ? {
+        ...current,
+        elements: current.elements.map((element) =>
+          element.id === state.elementId ? { ...element, ...result } : element
+        ),
+      } : current)
+      return
+    }
+
     if (isDragging && selectedElementId && canvasRef.current) {
       const canvasRect = canvasRef.current.getBoundingClientRect()
       const rawX = Math.round((e.clientX - canvasRect.left - dragOffset.x * zoom) / zoom)
@@ -346,31 +488,56 @@ export default function OverlayEditor({ overlayId }) {
         })
         : { x: rawX, y: rawY, guides: [] }
 
-      dragPositionRef.current = { x: result.x, y: result.y }
+      const boundedPosition = movingElement && overlay
+        ? (() => {
+          return {
+            x: Math.max(0, Math.min(result.x, overlay.width - movingElement.width)),
+            y: Math.max(0, Math.min(result.y, overlay.height - movingElement.height)),
+          }
+        })()
+        : { x: result.x, y: result.y }
+
+      dragPositionRef.current = boundedPosition
+      const safeArea = getSafeAreaBounds(overlay)
+      const threshold = 8 / zoom
+      setShowSafeArea(
+        result.safeAreaMatched ||
+        boundedPosition.x <= safeArea.left + threshold ||
+        boundedPosition.y <= safeArea.top + threshold ||
+        boundedPosition.x + movingElement.width >= safeArea.right - threshold ||
+        boundedPosition.y + movingElement.height >= safeArea.bottom - threshold
+      )
       setAlignmentGuides(result.guides)
       setOverlay((current) => {
         if (!current) return current
         return {
           ...current,
           elements: current.elements.map((element) =>
-            element.id === selectedElementId ? { ...element, x: result.x, y: result.y } : element
+            element.id === selectedElementId ? { ...element, ...boundedPosition } : element
           ),
         }
       })
     }
-  }, [dragOffset, isDragging, overlay, selectedElementId, zoom])
+  }, [dragOffset, isDragging, isResizing, overlay, selectedElementId, zoom])
 
   const handleMouseUp = useCallback(() => {
+    if (resizeRef.current && resizeResultRef.current) {
+      updateElement(overlayId, resizeRef.current.elementId, resizeResultRef.current)
+    }
+    resizeRef.current = null
+    resizeResultRef.current = null
     if (selectedElementId && dragPositionRef.current) {
       updateElement(overlayId, selectedElementId, dragPositionRef.current)
       dragPositionRef.current = null
     }
     setAlignmentGuides([])
     setIsDragging(false)
+    setIsResizing(false)
+    setShowSafeArea(false)
   }, [overlayId, selectedElementId, updateElement])
 
   useEffect(() => {
-    if (isDragging) {
+    if (isDragging || isResizing) {
       window.addEventListener('mousemove', handleMouseMove)
       window.addEventListener('mouseup', handleMouseUp)
       return () => {
@@ -378,28 +545,107 @@ export default function OverlayEditor({ overlayId }) {
         window.removeEventListener('mouseup', handleMouseUp)
       }
     }
-  }, [isDragging, handleMouseMove, handleMouseUp])
+  }, [isDragging, isResizing, handleMouseMove, handleMouseUp])
+
+  const commitPropertyPreview = useCallback(() => {
+    if (!selectedElementId || !propertyPreviewRef.current) return
+    updateElement(overlayId, selectedElementId, propertyPreviewRef.current)
+    propertyPreviewRef.current = null
+  }, [overlayId, selectedElementId, updateElement])
+
+  const handleZoomPreview = useCallback((value) => {
+    if (!selectedElementId) return
+    setOverlay((current) => {
+      if (!current) return current
+      const element = current.elements.find((item) => item.id === selectedElementId)
+      if (!element) return current
+      const previousZoom = Math.max(10, Number(element.zoom) || 100)
+      const ratio = value / previousZoom
+      const width = Math.max(20, Math.min(Math.round(element.width * ratio), current.width - element.x))
+      const height = Math.max(20, Math.min(Math.round(element.height * ratio), current.height - element.y))
+      const updates = {
+        width,
+        height,
+        zoom: value,
+        cropLeft: Math.round((element.cropLeft || 0) * ratio),
+        cropRight: Math.round((element.cropRight || 0) * ratio),
+        cropTop: Math.round((element.cropTop || 0) * ratio),
+        cropBottom: Math.round((element.cropBottom || 0) * ratio),
+      }
+      propertyPreviewRef.current = updates
+      return {
+        ...current,
+        elements: current.elements.map((item) => item.id === selectedElementId ? { ...item, ...updates } : item),
+      }
+    })
+  }, [selectedElementId])
+
+  const handleCropPreview = useCallback((axis, value) => {
+    if (!selectedElementId) return
+    setOverlay((current) => {
+      if (!current) return current
+      const element = current.elements.find((item) => item.id === selectedElementId)
+      if (!element) return current
+
+      const updates = axis === 'horizontal'
+        ? (() => {
+          const total = element.width + (element.cropLeft || 0) + (element.cropRight || 0)
+          const originalLeft = element.x - (element.cropLeft || 0)
+          return { x: originalLeft + value, width: total - value * 2, cropLeft: value, cropRight: value }
+        })()
+        : (() => {
+          const total = element.height + (element.cropTop || 0) + (element.cropBottom || 0)
+          const originalTop = element.y - (element.cropTop || 0)
+          return { y: originalTop + value, height: total - value * 2, cropTop: value, cropBottom: value }
+        })()
+
+      propertyPreviewRef.current = updates
+      return {
+        ...current,
+        elements: current.elements.map((item) => item.id === selectedElementId ? { ...item, ...updates } : item),
+      }
+    })
+  }, [selectedElementId])
 
   if (!isLoaded || !overlay) {
     return <LoadingState fullScreen label="Carregando editor..." />
   }
 
+  const handleRestoreElementProperties = () => {
+    if (!selectedElement) return
+    const width = selectedElement.type === 'text' ? 300 : 200
+    const height = selectedElement.type === 'text' ? 50 : 200
+    updateElement(overlayId, selectedElement.id, {
+      x: Math.round(overlay.width / 2 - width / 2),
+      y: Math.round(overlay.height / 2 - height / 2),
+      width,
+      height,
+      zoom: 100,
+      cropLeft: 0,
+      cropRight: 0,
+      cropTop: 0,
+      cropBottom: 0,
+    })
+    propertyPreviewRef.current = null
+    toast.success('Posição, tamanho e recortes restaurados')
+  }
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="flex min-h-dvh min-w-0 flex-col bg-background">
       {/* Toolbar */}
-      <header className="h-14 border-b border-border bg-card flex items-center px-4 gap-4 sticky top-0 z-50">
+      <header className="sticky top-0 z-30 flex min-h-14 flex-wrap items-center gap-2 border-b border-border bg-card px-3 py-2 sm:gap-4 sm:px-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/overlay">
             <ArrowLeft className="w-5 h-5" />
           </Link>
         </Button>
         <Separator orientation="vertical" className="h-8" />
-        <div className="flex-1">
-          <h1 className="font-semibold text-foreground">{overlay.name}</h1>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate font-semibold text-foreground">{overlay.name}</h1>
               <p className="text-xs text-muted-foreground">{overlay.width}x{overlay.height} - {overlay.elements.length} elemento(s)</p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 overflow-x-auto pb-1 sm:w-auto sm:pb-0">
           {/* Add Element Dialogs */}
           <Dialog
             open={addImageDialogOpen}
@@ -588,7 +834,7 @@ export default function OverlayEditor({ overlayId }) {
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col overflow-hidden xl:flex-row">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden xl:flex-row">
         {/* Canvas Area */}
         <div className="flex-1 overflow-auto bg-muted/20 p-3 sm:p-4 lg:p-6">
           {/* Zoom Controls */}
@@ -652,7 +898,7 @@ export default function OverlayEditor({ overlayId }) {
           >
             {/* Grid pattern */}
             {showGrid && (
-              <div 
+              <div
                 className="absolute inset-0 opacity-20 pointer-events-none"
                 style={{
                   backgroundImage: 'linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)',
@@ -703,34 +949,50 @@ export default function OverlayEditor({ overlayId }) {
                   setSelectedElementId(element.id)
                 }}
               >
-                {element.type === 'image' && element.src && (
-                  <StaticMediaFrame
-                    src={element.src}
-                    alt=""
-                    className="w-full h-full object-contain pointer-events-none"
-                    draggable={false}
-                  />
-                )}
-                {element.type === 'text' && (
-                  <div 
-                    className="w-full h-full flex items-center justify-center pointer-events-none text-center"
-                    style={{ 
-                      fontSize: element.fontSize * zoom,
-                      color: element.fontColor,
-                      fontFamily: element.fontFamily,
+                <div className="pointer-events-none absolute inset-0 overflow-hidden">
+                  <div
+                    className="absolute"
+                    style={{
+                      left: -(element.cropLeft || 0) * zoom,
+                      top: -(element.cropTop || 0) * zoom,
+                      width: (element.width + (element.cropLeft || 0) + (element.cropRight || 0)) * zoom,
+                      height: (element.height + (element.cropTop || 0) + (element.cropBottom || 0)) * zoom,
                     }}
                   >
-                    {element.text}
+                    {element.type === 'image' && element.src && (
+                      <StaticMediaFrame
+                        src={element.src}
+                        alt=""
+                        className="h-full w-full object-contain"
+                        draggable={false}
+                      />
+                    )}
+                    {element.type === 'text' && (
+                      <div
+                        className="flex h-full w-full items-center justify-center text-center"
+                        style={{
+                          fontSize: element.fontSize * zoom,
+                          color: element.fontColor,
+                          fontFamily: element.fontFamily,
+                        }}
+                      >
+                        {element.text}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
                 
                 {/* Selection handles */}
                 {selectedElementId === element.id && (
                   <>
-                    <div className="absolute -top-1 -left-1 w-3 h-3 bg-primary rounded-full border-2 border-primary-foreground" />
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-primary-foreground" />
-                    <div className="absolute -bottom-1 -left-1 w-3 h-3 bg-primary rounded-full border-2 border-primary-foreground" />
-                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-primary-foreground" />
+                    <button type="button" aria-label="Redimensionar pelo canto superior esquerdo" onMouseDown={(event) => handleResizeMouseDown(event, element, 'nw')} className="absolute -left-1.5 -top-1.5 z-10 h-3 w-3 cursor-nwse-resize rounded-full border-2 border-primary-foreground bg-primary" />
+                    <button type="button" aria-label="Redimensionar pelo topo" onMouseDown={(event) => handleResizeMouseDown(event, element, 'n')} className="absolute -top-1.5 left-1/2 z-10 h-3 w-3 -translate-x-1/2 cursor-ns-resize rounded-full border-2 border-primary-foreground bg-primary" />
+                    <button type="button" aria-label="Redimensionar pelo canto superior direito" onMouseDown={(event) => handleResizeMouseDown(event, element, 'ne')} className="absolute -right-1.5 -top-1.5 z-10 h-3 w-3 cursor-nesw-resize rounded-full border-2 border-primary-foreground bg-primary" />
+                    <button type="button" aria-label="Redimensionar pela direita" onMouseDown={(event) => handleResizeMouseDown(event, element, 'e')} className="absolute -right-1.5 top-1/2 z-10 h-3 w-3 -translate-y-1/2 cursor-ew-resize rounded-full border-2 border-primary-foreground bg-primary" />
+                    <button type="button" aria-label="Redimensionar pelo canto inferior direito" onMouseDown={(event) => handleResizeMouseDown(event, element, 'se')} className="absolute -bottom-1.5 -right-1.5 z-10 h-3 w-3 cursor-nwse-resize rounded-full border-2 border-primary-foreground bg-primary" />
+                    <button type="button" aria-label="Redimensionar pela base" onMouseDown={(event) => handleResizeMouseDown(event, element, 's')} className="absolute -bottom-1.5 left-1/2 z-10 h-3 w-3 -translate-x-1/2 cursor-ns-resize rounded-full border-2 border-primary-foreground bg-primary" />
+                    <button type="button" aria-label="Redimensionar pelo canto inferior esquerdo" onMouseDown={(event) => handleResizeMouseDown(event, element, 'sw')} className="absolute -bottom-1.5 -left-1.5 z-10 h-3 w-3 cursor-nesw-resize rounded-full border-2 border-primary-foreground bg-primary" />
+                    <button type="button" aria-label="Redimensionar pela esquerda" onMouseDown={(event) => handleResizeMouseDown(event, element, 'w')} className="absolute -left-1.5 top-1/2 z-10 h-3 w-3 -translate-y-1/2 cursor-ew-resize rounded-full border-2 border-primary-foreground bg-primary" />
                   </>
                 )}
               </div>
@@ -751,7 +1013,7 @@ export default function OverlayEditor({ overlayId }) {
         </div>
 
         {/* Sidebar */}
-        <aside className="flex w-full flex-col border-t border-border bg-card xl:w-80 xl:border-l xl:border-t-0">
+        <aside className="flex max-h-[45dvh] w-full shrink-0 flex-col border-t border-border bg-card xl:max-h-none xl:w-80 xl:border-l xl:border-t-0">
           <Tabs defaultValue="elements" className="flex-1 flex flex-col">
             <TabsList className="mx-4 mt-4 bg-muted">
               <TabsTrigger value="elements" className="flex-1">
@@ -781,20 +1043,25 @@ export default function OverlayEditor({ overlayId }) {
                       .map((element) => (
                       <div
                         key={element.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border ${
+                        className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all border ${!element.visible ? 'opacity-60 ' : ''}${
                           selectedElementId === element.id 
                             ? 'bg-primary/10 border-primary/50 text-foreground' 
                             : 'bg-muted/50 border-transparent hover:bg-muted hover:border-border'
                         }`}
                         onClick={() => setSelectedElementId(element.id)}
                       >
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          element.type === 'image' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'
-                        }`}>
-                          {element.type === 'image' ? (
-                            <ImageIcon className="w-5 h-5" />
+                        <div className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border/70 bg-black">
+                          {element.type === 'image' && element.src ? (
+                            <StaticMediaFrame src={element.src} alt="" className="h-full w-full object-contain" />
+                          ) : element.type === 'text' ? (
+                            <div
+                              className="flex h-full w-full items-center justify-center overflow-hidden px-1 text-center text-[8px] leading-tight"
+                              style={{ color: element.fontColor || '#ffffff', fontFamily: element.fontFamily }}
+                            >
+                              <span className="line-clamp-3">{element.text || 'Texto'}</span>
+                            </div>
                           ) : (
-                            <Type className="w-5 h-5" />
+                            <ImageIcon className="h-5 w-5 text-muted-foreground" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -832,9 +1099,10 @@ export default function OverlayEditor({ overlayId }) {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 rounded-lg"
+                            aria-label={element.visible ? `Ocultar ${element.type === 'text' ? 'texto' : 'imagem'}` : `Exibir ${element.type === 'text' ? 'texto' : 'imagem'}`}
                             onClick={(e) => {
                               e.stopPropagation()
-                              handleElementUpdate('visible', !element.visible)
+                              updateElement(overlayId, element.id, { visible: !element.visible })
                             }}
                           >
                             {element.visible ? (
@@ -878,6 +1146,11 @@ export default function OverlayEditor({ overlayId }) {
                     </Button>
                   </div>
 
+                  <Button variant="outline" size="sm" className="w-full" onClick={handleRestoreElementProperties}>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Restaurar propriedades
+                  </Button>
+
                   <Separator />
 
                   {/* Transform */}
@@ -902,7 +1175,9 @@ export default function OverlayEditor({ overlayId }) {
                         <Input
                           type="number"
                           value={selectedElement.x}
-                          onChange={(e) => handleElementUpdate('x', parseInt(e.target.value) || 0)}
+                          min={0}
+                          max={Math.max(0, overlay.width - selectedElement.width)}
+                          onChange={(e) => handleElementUpdate('x', Math.max(0, Math.min(parseInt(e.target.value) || 0, overlay.width - selectedElement.width)))}
                           className="h-9"
                         />
                       </div>
@@ -911,26 +1186,50 @@ export default function OverlayEditor({ overlayId }) {
                         <Input
                           type="number"
                           value={selectedElement.y}
-                          onChange={(e) => handleElementUpdate('y', parseInt(e.target.value) || 0)}
+                          min={0}
+                          max={Math.max(0, overlay.height - selectedElement.height)}
+                          onChange={(e) => handleElementUpdate('y', Math.max(0, Math.min(parseInt(e.target.value) || 0, overlay.height - selectedElement.height)))}
                           className="h-9"
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-xs">Largura</Label>
+                        <Label className="text-xs">Laterais · largura</Label>
                         <Input
                           type="number"
                           value={selectedElement.width}
-                          onChange={(e) => handleElementUpdate('width', parseInt(e.target.value) || 100)}
+                          min={20}
+                          max={overlay.width - selectedElement.x}
+                          onChange={(e) => handleElementUpdate('width', Math.max(20, Math.min(parseInt(e.target.value) || 20, overlay.width - selectedElement.x)))}
                           className="h-9"
+                        />
+                        <Slider
+                          aria-label="Recortar margens laterais"
+                          value={[Math.round(((selectedElement.cropLeft || 0) + (selectedElement.cropRight || 0)) / 2)]}
+                          onValueChange={([value]) => handleCropPreview('horizontal', value)}
+                          onValueCommit={commitPropertyPreview}
+                          min={0}
+                          max={Math.max(0, Math.floor((selectedElement.width + (selectedElement.cropLeft || 0) + (selectedElement.cropRight || 0) - 20) / 2))}
+                          step={1}
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-xs">Altura</Label>
+                        <Label className="text-xs">Cima/baixo · altura</Label>
                         <Input
                           type="number"
                           value={selectedElement.height}
-                          onChange={(e) => handleElementUpdate('height', parseInt(e.target.value) || 100)}
+                          min={20}
+                          max={overlay.height - selectedElement.y}
+                          onChange={(e) => handleElementUpdate('height', Math.max(20, Math.min(parseInt(e.target.value) || 20, overlay.height - selectedElement.y)))}
                           className="h-9"
+                        />
+                        <Slider
+                          aria-label="Recortar margens superior e inferior"
+                          value={[Math.round(((selectedElement.cropTop || 0) + (selectedElement.cropBottom || 0)) / 2)]}
+                          onValueChange={([value]) => handleCropPreview('vertical', value)}
+                          onValueCommit={commitPropertyPreview}
+                          min={0}
+                          max={Math.max(0, Math.floor((selectedElement.height + (selectedElement.cropTop || 0) + (selectedElement.cropBottom || 0) - 20) / 2))}
+                          step={1}
                         />
                       </div>
                     </div>
@@ -941,22 +1240,17 @@ export default function OverlayEditor({ overlayId }) {
                       <ZoomIn className="w-3 h-3" /> Zoom do elemento
                     </Label>
                     <div className="space-y-2">
-                      <div className="text-xs text-muted-foreground">
-                        Ajusta largura e altura juntas com base no tamanho padrão do tipo de elemento.
+                      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                        <span>Escala o tamanho atual mantendo a proporção.</span>
+                        <span className="shrink-0 tabular-nums">{selectedElement.zoom || 100}%</span>
                       </div>
                       <Slider
-                        value={[Math.max(10, Math.round((selectedElement.width / (selectedElement.type === 'text' ? 300 : 200)) * 100))]}
-                        onValueChange={([value]) => {
-                          const baseWidth = selectedElement.type === 'text' ? 300 : 200
-                          const baseHeight = selectedElement.type === 'text' ? 50 : 200
-                          handleElementBatchUpdate({
-                            width: Math.round(baseWidth * (value / 100)),
-                            height: Math.round(baseHeight * (value / 100)),
-                          })
-                        }}
+                        value={[selectedElement.zoom || 100]}
+                        onValueChange={([value]) => handleZoomPreview(value)}
+                        onValueCommit={commitPropertyPreview}
                         min={10}
                         max={300}
-                        step={5}
+                        step={1}
                       />
                     </div>
                   </div>

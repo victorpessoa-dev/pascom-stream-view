@@ -45,14 +45,8 @@ const publicLinks = [
   { title: 'Abrir /telao-master', href: '/telao-master', icon: Play, target: '_blank' },
 ]
 
-function getInitialCollapsed() {
-  if (typeof window === 'undefined') return true
-  if (window.innerWidth < 1280) return true
-  return localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true'
-}
-
-export default function AppSidebar() {
-  const [collapsed, setCollapsed] = useState(getInitialCollapsed)
+export default function AppSidebar({ mobileOpen = false, onMobileClose }) {
+  const [collapsed, setCollapsed] = useState(true)
   const pathname = usePathname()
   const { overlays, ads, isLoaded } = useStore()
 
@@ -88,27 +82,37 @@ export default function AppSidebar() {
 
   return (
     <TooltipProvider delayDuration={0}>
+      {mobileOpen ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-40 bg-black/55 backdrop-blur-[2px] md:hidden"
+          onClick={onMobileClose}
+          aria-label="Fechar menu principal"
+        />
+      ) : null}
       <aside
         className={cn(
-          'fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-sidebar-border bg-sidebar shadow-2xl shadow-black/20 transition-sidebar',
-          collapsed ? 'w-[72px]' : 'w-[260px]'
+          'fixed left-0 top-0 z-50 flex h-dvh w-60 flex-col overflow-hidden border-r border-sidebar-border bg-sidebar shadow-[8px_0_32px_rgb(0_0_0/0.12)] transition-[width,transform] duration-300 ease-in-out md:z-40 md:translate-x-0',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full',
+          collapsed ? 'md:w-16' : 'md:w-60'
         )}
       >
-        <div className={cn('flex min-h-24 items-center border-b border-sidebar-border px-6 py-5', collapsed ? 'justify-center' : 'gap-4')}>
-          <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-lg p-1">
+        <div className={cn('flex min-h-20 items-center gap-3 border-b border-sidebar-border/80 px-4 py-4', collapsed && 'md:justify-center md:gap-0')}>
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg p-1">
             <img src="/brand/icon-logo.svg" alt="" className="h-full w-full object-contain" />
           </div>
-          {!collapsed ? (
-            <div className="min-w-0 flex flex-col">
+            <div className={cn(
+              'flex min-w-0 flex-1 flex-col overflow-hidden whitespace-nowrap opacity-100 transition-[max-width,opacity] duration-200 ease-out md:max-w-40',
+              collapsed && 'md:max-w-0 md:opacity-0'
+            )}>
               <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
                 PASCOM <span className="text-[11px] font-medium uppercase tracking-wide text-sidebar-muted">Stream View</span>
               </span>
               <span className="mt-1 truncate text-[11px] font-medium text-sidebar-foreground/70">Painel administrativo</span>
             </div>
-          ) : null}
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-6">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-2.5 py-4">
           {navItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
             const badgeValue =
@@ -122,24 +126,27 @@ export default function AppSidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={onMobileClose}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                  'relative flex items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg px-3 py-2.5 text-[13px] font-medium transition-[padding,background-color,color] duration-300',
                   'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                  isActive ? 'bg-sidebar-primary text-sidebar-primary-foreground' : 'text-sidebar-foreground/70',
-                  collapsed && 'justify-center px-0'
+                  isActive ? 'bg-sidebar-primary/90 text-sidebar-primary-foreground shadow-sm before:absolute before:-left-2.5 before:h-5 before:w-0.5 before:rounded-full before:bg-sidebar-primary' : 'text-sidebar-foreground/70',
+                  collapsed && 'md:justify-center md:px-0'
                 )}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
-                {!collapsed ? (
-                  <>
-                    <span className="flex-1">{item.title}</span>
+                  <span className={cn(
+                    'min-w-0 flex-1 overflow-hidden whitespace-nowrap opacity-100 transition-[max-width,opacity] duration-200 ease-out md:max-w-40',
+                    collapsed && 'md:max-w-0 md:opacity-0'
+                  )}>{item.title}</span>
                     {isLoaded && badgeValue > 0 ? (
-                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-sidebar-accent px-1.5 text-[10px] font-semibold text-sidebar-accent-foreground">
+                      <span className={cn(
+                        'flex h-5 min-w-[20px] items-center justify-center rounded-full bg-sidebar-accent px-1.5 text-[10px] font-semibold text-sidebar-accent-foreground transition-opacity duration-200',
+                        collapsed && 'md:hidden'
+                      )}>
                         {badgeValue}
                       </span>
                     ) : null}
-                  </>
-                ) : null}
               </Link>
             )
 
@@ -160,19 +167,19 @@ export default function AppSidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={onMobileClose}
                 target={item.target}
                 className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                  collapsed && 'justify-center px-0'
+                  'flex items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-[padding,background-color,color] duration-300 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                  collapsed && 'md:justify-center md:px-0'
                 )}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
-                {!collapsed ? (
-                  <>
-                    <span className="flex-1">{item.title}</span>
-                    {item.target ? <ExternalLink className="h-4 w-4 opacity-50" /> : null}
-                  </>
-                ) : null}
+                <span className={cn(
+                  'min-w-0 flex-1 overflow-hidden whitespace-nowrap opacity-100 transition-[max-width,opacity] duration-200 ease-out md:max-w-40',
+                  collapsed && 'md:max-w-0 md:opacity-0'
+                )}>{item.title}</span>
+                {item.target ? <ExternalLink className={cn('h-4 w-4 shrink-0 opacity-50 transition-opacity', collapsed && 'md:hidden')} /> : null}
               </Link>
             )
 
@@ -198,7 +205,10 @@ export default function AppSidebar() {
             )}
           >
             {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-            {!collapsed ? <span>Recolher menu</span> : null}
+            <span className={cn(
+              'overflow-hidden whitespace-nowrap opacity-100 transition-[max-width,opacity] duration-200 md:max-w-32',
+              collapsed && 'md:max-w-0 md:opacity-0'
+            )}>Recolher menu</span>
           </button>
 
           {collapsed ? (

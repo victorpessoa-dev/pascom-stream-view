@@ -16,7 +16,7 @@ import {
   saveAdminSettings,
 } from '@/lib/services/settings'
 import { createSupabaseBrowserClient } from '@/services/supabase/browser'
-import { uploadMedia } from '@/services/supabase/upload'
+import { deleteUploadedMediaBatch, uploadMedia } from '@/services/supabase/upload'
 import {
   AccountSettingsSection,
   AppearanceSettingsSection,
@@ -32,6 +32,7 @@ export default function ConfiguracoesPage() {
   const [settings, setSettings] = useState(defaultAdminSettings)
   const [hasChanges, setHasChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [pendingStorageCleanup, setPendingStorageCleanup] = useState([])
   const [account, setAccount] = useState({
     userId: '',
     email: '',
@@ -189,10 +190,13 @@ export default function ConfiguracoesPage() {
     try {
       const supabase = createSupabaseBrowserClient()
       const savedSettings = await saveAdminSettings(supabase, settings)
+      const storageErrors = await deleteUploadedMediaBatch(pendingStorageCleanup)
       setSettings(savedSettings)
+      setPendingStorageCleanup([])
       setHasChanges(false)
       await reload()
-      toast.success('Configurações salvas com sucesso')
+      if (storageErrors.length) toast.warning('Configurações salvas, mas alguns arquivos antigos não puderam ser removidos')
+      else toast.success('Configurações salvas com sucesso')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao salvar configurações')
     } finally {
@@ -250,12 +254,22 @@ export default function ConfiguracoesPage() {
 
   const clearAllData = async () => {
     try {
+      const storedFiles = [
+        ...ads.map((ad) => ad.src),
+        ...overlays.flatMap((overlay) => overlay.elements.map((element) => element.src)),
+        settings.appearance.parishLogoUrl,
+        settings.appearance.parishCoverUrl,
+        sponsorSettings.designs.NORMAL?.backgroundUrl,
+        sponsorSettings.designs.MASTER?.backgroundUrl,
+      ]
       const supabase = createSupabaseBrowserClient()
       const resetSettingsValue = await resetAdministrativeData(supabase)
+      const storageErrors = await deleteUploadedMediaBatch(storedFiles)
       setSettings(resetSettingsValue)
       setHasChanges(false)
       await reload()
-      toast.success('Overlays, patrocínios e configurações administrativas foram redefinidos')
+      if (storageErrors.length) toast.warning('Dados redefinidos, mas alguns arquivos não puderam ser removidos')
+      else toast.success('Overlays, patrocínios e configurações administrativas foram redefinidos')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao apagar dados')
     }
@@ -282,9 +296,16 @@ export default function ConfiguracoesPage() {
 
   const uploadSponsorBackground = async (kind, file) => {
     if (!file) return
+    const previousUrl = sponsorSettings.designs[kind]?.backgroundUrl || ''
+    if (previousUrl && !window.confirm('Substituir a imagem de fundo? O arquivo antigo será excluído após a confirmação.')) return
     try {
       const url = await uploadMedia(file, 'sponsors')
       await updateSponsorDesign(kind, 'backgroundUrl', url)
+      const storageErrors = await deleteUploadedMediaBatch([previousUrl])
+      if (storageErrors.length) {
+        toast.warning('Nova imagem salva, mas o arquivo antigo não pôde ser removido')
+        return
+      }
       toast.success('Imagem de fundo enviada')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao enviar a imagem de fundo')
@@ -293,9 +314,12 @@ export default function ConfiguracoesPage() {
 
   const uploadParishLogo = async (file) => {
     if (!file) return
+    const previousUrl = settings.appearance.parishLogoUrl
+    if (previousUrl && !window.confirm('Substituir a logo? O arquivo antigo será excluído quando as configurações forem salvas.')) return
     try {
       const url = await uploadMedia(file, 'branding')
       updateSettings('appearance', 'parishLogoUrl', url)
+      setPendingStorageCleanup((current) => [...current, previousUrl])
       toast.success('Logo enviada')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao enviar logo')
@@ -304,9 +328,12 @@ export default function ConfiguracoesPage() {
 
   const uploadParishCover = async (file) => {
     if (!file) return
+    const previousUrl = settings.appearance.parishCoverUrl
+    if (previousUrl && !window.confirm('Substituir a capa? O arquivo antigo será excluído quando as configurações forem salvas.')) return
     try {
       const url = await uploadMedia(file, 'branding')
       updateSettings('appearance', 'parishCoverUrl', url)
+      setPendingStorageCleanup((current) => [...current, previousUrl])
       toast.success('Capa enviada')
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao enviar capa')
@@ -340,23 +367,13 @@ export default function ConfiguracoesPage() {
 
           <SettingsTabs>
             <TabsContent value="telao" className="space-y-6">
-              <Tabs defaultValue="comportamento" className="space-y-4">
-                <TabsList className="grid w-full max-w-md grid-cols-2">
-                  <TabsTrigger value="comportamento">Comportamento</TabsTrigger>
-                  <TabsTrigger value="design">Design</TabsTrigger>
-                </TabsList>
-                <TabsContent value="comportamento" className="space-y-6">
-                  <TelaoSettingsSection settings={settings} updateSettings={updateSettings} />
-                </TabsContent>
-                <TabsContent value="design" className="space-y-6">
-                  <SponsorDesignSection
-                    sponsorSettings={sponsorSettings}
-                    onDesignChange={updateSponsorDesign}
-                    onDesignBatchChange={updateSponsorDesignValues}
-                    onUploadBackground={uploadSponsorBackground}
-                  />
-                </TabsContent>
-              </Tabs>
+              <TelaoSettingsSection settings={settings} updateSettings={updateSettings} />
+              <SponsorDesignSection
+                sponsorSettings={sponsorSettings}
+                onDesignChange={updateSponsorDesign}
+                onDesignBatchChange={updateSponsorDesignValues}
+                onUploadBackground={uploadSponsorBackground}
+              />
             </TabsContent>
 
             <TabsContent value="appearance" className="space-y-6">

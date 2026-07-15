@@ -1,16 +1,25 @@
 'use client'
 
 import { useState } from 'react'
-import { Image as ImageIcon, Video, Zap } from 'lucide-react'
+import { Image as ImageIcon, Trash2, Video, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import StaticMediaFrame from '@/components/shared/static-media-frame'
+import { useMediaBackgroundColor } from '@/components/sponsors/telao-media'
+import { getYouTubeThumbnail } from '@/lib/utils/video-source'
 
 export function MediaPreview({ ad, compact = false }) {
-  const sizeClass = compact ? 'h-14 w-20' : 'h-32 w-full'
+  const sizeClass = compact ? 'h-14 w-20' : 'aspect-video w-full'
+  const backgroundColor = useMediaBackgroundColor(ad?.src, ad?.mediaType)
+  const backgroundStyle = {
+    backgroundColor,
+    backgroundImage: `radial-gradient(circle at center, color-mix(in srgb, ${backgroundColor} 82%, white 18%), ${backgroundColor})`,
+  }
 
   if (!ad.src) {
     return (
@@ -21,14 +30,31 @@ export function MediaPreview({ ad, compact = false }) {
   }
 
   if (ad.mediaType === 'video') {
-    return <StaticMediaFrame src={ad.src} type="video" className={`${sizeClass} rounded-lg bg-black object-contain`} />
+    const youtubeThumbnail = getYouTubeThumbnail(ad.src)
+    return (
+      <div className={`${sizeClass} shrink-0 overflow-hidden rounded-lg`} style={backgroundStyle}>
+        {youtubeThumbnail ? (
+          <img src={youtubeThumbnail} alt={`Prévia de ${ad.name || 'vídeo'}`} className="h-full w-full object-contain" />
+        ) : (
+          <StaticMediaFrame src={ad.src} type="video" className="h-full w-full object-contain" />
+        )}
+      </div>
+    )
   }
 
   if (ad.mediaType === 'image') {
-    return <StaticMediaFrame src={ad.src} alt={ad.name || 'Patrocínio'} className={`${sizeClass} rounded-lg bg-black object-contain`} />
+    return (
+      <div className={`${sizeClass} shrink-0 overflow-hidden rounded-lg`} style={backgroundStyle}>
+        <StaticMediaFrame src={ad.src} alt={ad.name || 'Patrocínio'} className="h-full w-full object-contain" />
+      </div>
+    )
   }
 
-  return <img src={ad.src} alt={ad.name || 'Patrocínio'} className={`${sizeClass} rounded-lg bg-black object-contain`} />
+  return (
+    <div className={`${sizeClass} shrink-0 overflow-hidden rounded-lg`} style={backgroundStyle}>
+      <img src={ad.src} alt={ad.name || 'Patrocínio'} className="h-full w-full object-contain" />
+    </div>
+  )
 }
 
 export function TypeBadge({ ad }) {
@@ -46,14 +72,26 @@ export function TypeBadge({ ad }) {
   )
 }
 
-export function SponsorForm({ ad, setAd, getTypeDuration, onUpload, onUploadStateChange }) {
+export function SponsorForm({ ad, setAd, getTypeDuration, onUpload, onUploadStateChange, allowMediaRemoval = false }) {
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
   const hasUploadedMedia = ad.sourceType === 'upload' && Boolean(ad.src)
+  const isMaster = ad.type === 'MASTER'
+  const durationLimit = Math.max(3, Number(getTypeDuration(ad.type)) || 3)
+  const displayedDuration = Math.min(durationLimit, Math.max(3, Number(ad.duration) || 3))
 
   const handleUpload = async (event) => {
     const file = event.target.files?.[0]
     if (!file) return
 
+    const isVideo = file.type?.startsWith('video/')
+    if (isVideo && !isMaster) {
+      setUploadError('Upload de vídeo é exclusivo para patrocinadores MASTER.')
+      event.target.value = ''
+      return
+    }
+
+    setUploadError('')
     setUploading(true)
     onUploadStateChange?.(true)
     try {
@@ -66,13 +104,28 @@ export function SponsorForm({ ad, setAd, getTypeDuration, onUpload, onUploadStat
   }
 
   return (
-    <div className="space-y-5 py-4">
-      <div className="space-y-2">
-        <Label>Nome</Label>
-        <Input value={ad.name} onChange={(e) => setAd((prev) => ({ ...prev, name: e.target.value }))} />
-      </div>
+    <Tabs defaultValue="data" className="py-4">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="data">Dados</TabsTrigger>
+        <TabsTrigger value="media">Mídia e prévia</TabsTrigger>
+      </TabsList>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <TabsContent value="data" className="mt-5 space-y-5">
+        <div className="space-y-2">
+          <Label>Nome</Label>
+          <Input value={ad.name} onChange={(e) => setAd((prev) => ({ ...prev, name: e.target.value }))} />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Site do anunciante</Label>
+          <Input
+            type="url"
+            placeholder="https://loja.com.br ou https://instagram.com/perfil"
+            value={ad.websiteUrl || ''}
+            onChange={(e) => setAd((prev) => ({ ...prev, websiteUrl: e.target.value }))}
+          />
+        </div>
+
         <div className="space-y-2">
           <Label>Tipo</Label>
           <Select
@@ -82,6 +135,9 @@ export function SponsorForm({ ad, setAd, getTypeDuration, onUpload, onUploadStat
                 ...prev,
                 type: value,
                 duration: getTypeDuration(value),
+                ...(value === 'NORMAL' && prev.mediaType === 'video'
+                  ? { mediaType: 'image', src: '', sourceType: 'link' }
+                  : {}),
               }))
             }
           >
@@ -92,54 +148,79 @@ export function SponsorForm({ ad, setAd, getTypeDuration, onUpload, onUploadStat
             </SelectContent>
           </Select>
         </div>
+
+        <div className="space-y-2">
+          <Label>Duração da exibição: {displayedDuration}s</Label>
+          <Slider value={[displayedDuration]} onValueChange={([value]) => setAd((prev) => ({ ...prev, duration: value }))} min={3} max={durationLimit} step={1} />
+          <p className="text-xs text-muted-foreground">Limite do tipo {ad.type}: {durationLimit}s.</p>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="media" className="mt-5 space-y-5">
         <div className="space-y-2">
           <Label>Mídia</Label>
           <Select value={ad.mediaType} onValueChange={(value) => setAd((prev) => ({ ...prev, mediaType: value }))}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="image">Imagem</SelectItem>
-              <SelectItem value="video">Vídeo</SelectItem>
+              <SelectItem value="video" disabled={!isMaster}>Vídeo · MASTER</SelectItem>
             </SelectContent>
           </Select>
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <Label>Link da mídia</Label>
-        <Input
-          placeholder={ad.mediaType === 'video' ? 'https://exemplo.com/video.mp4' : 'https://exemplo.com/imagem.png'}
-          value={ad.src || ''}
-          readOnly={hasUploadedMedia}
-          onChange={(e) => setAd((prev) => ({ ...prev, src: e.target.value, sourceType: 'link' }))}
-        />
-        {hasUploadedMedia ? (
+        <div className="space-y-2">
+          <Label>Link da mídia</Label>
+          <Input
+            placeholder={ad.mediaType === 'video' ? 'https://exemplo.com/video.mp4' : 'https://exemplo.com/imagem.png'}
+            value={ad.src || ''}
+            readOnly={hasUploadedMedia}
+            onChange={(e) => setAd((prev) => ({ ...prev, src: e.target.value, sourceType: 'link' }))}
+          />
+          {hasUploadedMedia ? (
+            <p className="text-xs text-muted-foreground">Upload anexado. Clique em Salvar para gravar esta mídia no patrocínio.</p>
+          ) : null}
+        </div>
+
+        <div className="space-y-2">
+          <Label>Upload</Label>
+          <Input
+            type="file"
+            accept={isMaster ? 'image/gif,image/jpeg,image/png,image/webp,video/webm,video/mp4' : 'image/gif,image/jpeg,image/png,image/webp'}
+            disabled={uploading}
+            onChange={handleUpload}
+          />
           <p className="text-xs text-muted-foreground">
-            Upload anexado. Clique em Salvar para gravar esta mídia no patrocínio.
+            {isMaster ? 'MASTER aceita imagens e vídeos MP4/WebM.' : 'NORMAL aceita somente imagens. Para enviar vídeo, selecione MASTER.'}
+          </p>
+          {uploadError ? <p className="text-xs font-medium text-destructive">{uploadError}</p> : null}
+          {uploading ? <p className="text-xs text-muted-foreground">Enviando arquivo...</p> : null}
+        </div>
+
+        {ad.src ? (
+          <div className="space-y-3">
+            <MediaPreview ad={ad} />
+            {allowMediaRemoval ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full text-destructive hover:text-destructive"
+                onClick={() => {
+                  if (!window.confirm('Remover a mídia atual? O arquivo será excluído do armazenamento depois que a nova mídia for salva.')) return
+                  setAd((prev) => ({ ...prev, src: '', sourceType: 'link' }))
+                  setUploadError('')
+                }}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Remover mídia atual
+              </Button>
+            ) : null}
+          </div>
+        ) : allowMediaRemoval ? (
+          <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+            Mídia removida. Adicione um novo link ou faça outro upload antes de salvar.
           </p>
         ) : null}
-      </div>
-
-      <div className="space-y-2">
-        <Label>Site do anunciante</Label>
-        <Input
-          placeholder="https://anunciante.com.br"
-          value={ad.websiteUrl || ''}
-          onChange={(e) => setAd((prev) => ({ ...prev, websiteUrl: e.target.value }))}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label>Upload</Label>
-        <Input type="file" accept="image/gif,image/jpeg,image/png,image/webp,video/webm,video/mp4" disabled={uploading} onChange={handleUpload} />
-        {uploading ? <p className="text-xs text-muted-foreground">Enviando arquivo...</p> : null}
-      </div>
-
-      <div className="space-y-2">
-        <Label>Duração da exibição: {ad.duration}s</Label>
-        <Slider value={[ad.duration]} onValueChange={([value]) => setAd((prev) => ({ ...prev, duration: value }))} min={3} max={120} step={1} />
-      </div>
-
-      {ad.src ? <MediaPreview ad={ad} /> : null}
-    </div>
+      </TabsContent>
+    </Tabs>
   )
 }

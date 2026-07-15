@@ -9,7 +9,7 @@ export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDi
   return React.createElement("div", {
     ...props,
     ref,
-    className: cn("rounded-lg border border-border bg-card text-card-foreground shadow-sm transition-colors duration-150 motion-reduce:transition-none", className),
+    className: cn("rounded-xl border border-border/80 bg-card text-card-foreground shadow-[0_1px_2px_oklch(0.18_0.02_250/0.035),0_8px_24px_oklch(0.18_0.02_250/0.025)] transition-[transform,border-color,box-shadow] duration-200 motion-reduce:transition-none", className),
   })
 })
 

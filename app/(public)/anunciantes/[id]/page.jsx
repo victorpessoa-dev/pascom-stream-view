@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, Clock3, Download, Eye, History, MonitorPlay } from 'lucide-react'
+import { ArrowLeft, Clock3, Download, ExternalLink, Eye, History, MonitorPlay } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import PaginationControls from '@/components/shared/pagination-controls'
@@ -13,6 +13,9 @@ import PageContainer from '@/components/layout/page-container'
 import PublicNavbar from '@/components/shared/public-navbar'
 import { TimeSeriesLineChart } from '@/components/shared/simple-charts'
 import { downloadWorkbook } from '@/lib/export/simple-xlsx'
+import { useMediaBackgroundColor, YouTubeVideo } from '@/components/sponsors/telao-media'
+import { isSafePublicUrl } from '@/lib/utils/url'
+import { getYouTubeEmbedUrl } from '@/lib/utils/video-source'
 
 const REPORT_PAGE_SIZE = 20
 
@@ -72,13 +75,53 @@ function preverProximaExibicao(logs) {
 }
 
 function MediaPreview({ advertiser }) {
+  const backgroundColor = useMediaBackgroundColor(advertiser?.src, advertiser?.mediaType)
+  const backgroundStyle = {
+    backgroundColor,
+    backgroundImage: `radial-gradient(circle at center, color-mix(in srgb, ${backgroundColor} 82%, white 18%), ${backgroundColor})`,
+  }
+  const youtubeEmbedUrl = advertiser?.mediaType === 'video'
+    ? getYouTubeEmbedUrl(advertiser.src, { autoplay: true, controls: false })
+    : ''
+
   if (!advertiser?.src) return <div className="h-full w-full bg-muted" />
 
   if (advertiser.mediaType === 'video') {
-    return <video src={advertiser.src} className="h-full w-full object-contain" muted playsInline controls />
+    return (
+      <div className="h-full w-full" style={backgroundStyle}>
+        {youtubeEmbedUrl ? (
+          <YouTubeVideo
+            source={advertiser.src}
+            title={`Vídeo de ${advertiser.name}`}
+            className="aspect-video h-full w-full"
+            endOffset={10}
+            cropPercent={12}
+          />
+        ) : (
+          <video
+            src={advertiser.src}
+            className="pointer-events-none h-full w-full object-contain"
+            autoPlay
+            muted
+            playsInline
+            loop
+            disablePictureInPicture
+            controlsList="nodownload nofullscreen noremoteplayback"
+            tabIndex={-1}
+            referrerPolicy="no-referrer"
+            onTimeUpdate={(event) => {
+              const video = event.currentTarget
+              if (Number.isFinite(video.duration) && video.duration > 10 && video.duration - video.currentTime <= 10) {
+                video.pause()
+              }
+            }}
+          />
+        )}
+      </div>
+    )
   }
 
-  return <img src={advertiser.src} alt={advertiser.name} className="h-full w-full object-contain" />
+  return <div className="h-full w-full" style={backgroundStyle}><img src={advertiser.src} alt={advertiser.name} className="h-full w-full object-contain" referrerPolicy="no-referrer" /></div>
 }
 
 export default function AnuncianteDetalhePage() {
@@ -183,6 +226,7 @@ export default function AnuncianteDetalhePage() {
           rows: [
             ['Campo', 'Valor'],
             ['Nome', advertiser.name],
+            ['Site do anunciante', advertiser.websiteUrl || ''],
             ['Tipo', advertiser.type],
             ['Rota pública', rotaPublica],
             ['Duração padrão (s)', advertiser.duration],
@@ -198,6 +242,7 @@ export default function AnuncianteDetalhePage() {
           rows: [
             ['Campo', 'Valor'],
             ['Patrocinador', advertiser.name],
+            ['Site do anunciante', advertiser.websiteUrl || ''],
             ['Tipo', advertiser.type],
             ['Rota pública', rotaPublica],
             ['Total de exibições', totalExibicoes],
@@ -256,13 +301,26 @@ export default function AnuncianteDetalhePage() {
             </div>
             <CardContent className="space-y-4 p-6">
               <div>
-                <div className="text-2xl font-bold">{advertiser.name}</div>
+                <div className="mb-2 flex items-center gap-2">
+                  <div className="text-2xl font-bold">{advertiser.name}</div>
+                </div>
                 <div className="text-sm text-muted-foreground">Tipo: {advertiser.type}</div>
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MonitorPlay className="h-4 w-4" />
                 Rota pública: <code>{rotaPublica}</code>
               </div>
+              {isSafePublicUrl(advertiser.websiteUrl) ? (
+                <a
+                  href={advertiser.websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex max-w-full items-center gap-2 text-sm text-primary hover:underline"
+                >
+                  <ExternalLink className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{advertiser.websiteUrl}</span>
+                </a>
+              ) : null}
               <div className="text-sm text-muted-foreground">
                 Última exibição: {formatarDataHora(advertiser.lastDisplayedAt)}
               </div>

@@ -1,7 +1,7 @@
 ﻿'use client'
 
-import { Globe } from 'lucide-react'
-import { AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { Globe, RotateCcw } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
@@ -21,15 +21,17 @@ export function SettingRow({ title, description, control }) {
 }
 
 export function SponsorDesignPreview({ title, settings }) {
-  const zoom = settings.contentWidth ?? 58
-  const top = settings.y ?? 50
-  const left = settings.x ?? 50
+  const modeEnabled = Boolean(settings.enabled)
+  const width = modeEnabled ? settings.contentWidth ?? 58 : 100
+  const height = modeEnabled ? settings.contentHeight ?? 58 : 100
+  const top = modeEnabled ? settings.y ?? 50 : 50
+  const left = modeEnabled ? settings.x ?? 50 : 50
 
   return (
     <div className="space-y-3">
       <div className="text-sm font-medium">{title}</div>
       <div className="relative aspect-video overflow-hidden rounded-xl border border-border bg-black">
-        {settings.backgroundEnabled && settings.backgroundUrl ? (
+        {modeEnabled && settings.backgroundUrl ? (
           <img src={settings.backgroundUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
         ) : (
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.12),_transparent_45%),linear-gradient(135deg,_rgba(255,255,255,0.08),_transparent)]" />
@@ -38,8 +40,8 @@ export function SponsorDesignPreview({ title, settings }) {
         <div
           className="absolute rounded-lg border-2 border-dashed border-primary bg-primary/15"
           style={{
-            width: `${zoom}%`,
-            height: `${zoom}%`,
+            width: `${width}%`,
+            height: `${height}%`,
             left: `${left}%`,
             top: `${top}%`,
             transform: 'translate(-50%, -50%)',
@@ -54,21 +56,15 @@ export function SponsorDesignPreview({ title, settings }) {
   )
 }
 
-export function DesignAdjustmentDrop({ kind, settings, onChange, onBatchChange, onUpload }) {
+export function DesignAdjustmentDrop({ kind, settings, onChange, onModeChange, onUpload, onRestore }) {
   const isNormal = kind === 'NORMAL'
-  const zoom = settings.contentWidth ?? 58
-
-  const handleZoomChange = (value) => {
-    onBatchChange({
-      contentWidth: value,
-      contentHeight: value,
-    })
-  }
+  const contentWidth = settings.contentWidth ?? 58
+  const contentHeight = settings.contentHeight ?? 58
 
   return (
-    <AccordionItem value={kind} className="rounded-xl border border-border px-4">
-      <AccordionTrigger className="hover:no-underline">
-        <div>
+    <div className="rounded-xl border border-border p-4">
+      <div className="mb-6 flex flex-col gap-3 border-b border-border/70 pb-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <div className="font-medium">{isNormal ? 'Patrocínio normal' : 'Patrocínio master'}</div>
           <div className="text-sm text-muted-foreground">
             {isNormal
@@ -76,60 +72,104 @@ export function DesignAdjustmentDrop({ kind, settings, onChange, onBatchChange, 
               : 'Ajuste global dos patrocinadores master exibidos em /telao-master.'}
           </div>
         </div>
-      </AccordionTrigger>
-      <AccordionContent className="space-y-6">
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
-          <div className="space-y-5">
+        <Button type="button" variant="outline" size="sm" onClick={onRestore} className="shrink-0">
+          <RotateCcw className="mr-2 h-4 w-4" />
+          Restaurar área
+        </Button>
+      </div>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.9fr)] xl:items-start">
+        <div className="space-y-4">
+          <div className="rounded-lg border border-border bg-muted/20 p-4">
             <SettingRow
-              title="Layout ativado"
-              description="Controla posição, zoom e visibilidade da área da mídia."
-              control={<Switch checked={settings.enabled} onCheckedChange={(checked) => onChange('enabled', checked)} />}
-            />
-
-            <SettingRow
-              title="Usar fundo"
-              description={`Ativa uma imagem de fundo para ${isNormal ? 'os patrocinadores normais' : 'os patrocinadores master'}.`}
-              control={<Switch checked={settings.backgroundEnabled} onCheckedChange={(checked) => onChange('backgroundEnabled', checked)} />}
-            />
-
-            <div className="space-y-2">
-              <Label>Imagem de fundo</Label>
-              <Input
-                placeholder="https://exemplo.com/arte-fundo.png"
-                value={settings.backgroundUrl || ''}
-                onChange={(event) => onChange('backgroundUrl', event.target.value)}
+                title="Ativar Modo com Fundo"
+                description="Ativa uma imagem de fundo e libera o ajuste da área da mídia. Desativado, o conteúdo ocupa a tela completa."
+                control={<Switch checked={settings.enabled} onCheckedChange={onModeChange} />}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Upload da imagem de fundo</Label>
-              <Input type="file" accept="image/*" onChange={(event) => onUpload(event.target.files?.[0])} />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Zoom da área ({zoom}%)</Label>
-              <Slider value={[zoom]} onValueChange={([value]) => handleZoomChange(value)} min={10} max={100} step={1} />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Posição horizontal ({settings.x ?? 50}%)</Label>
-                <Slider value={[settings.x ?? 50]} onValueChange={([value]) => onChange('x', value)} min={0} max={100} step={1} />
-              </div>
-              <div className="space-y-2">
-                <Label>Posição vertical ({settings.y ?? 50}%)</Label>
-                <Slider value={[settings.y ?? 50]} onValueChange={([value]) => onChange('y', value)} min={0} max={100} step={1} />
-              </div>
-            </div>
           </div>
 
+          {settings.enabled ? (
+            <div className="animate-in space-y-4 fade-in slide-in-from-top-3 duration-300">
+              <div className="space-y-4 rounded-lg border border-border p-4">
+                <div>
+                  <Label>Fundo do telão</Label>
+                  <p className="text-sm text-muted-foreground">Use uma URL pública ou envie uma imagem. O resultado aparece somente no preview.</p>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                  <Label>Imagem de fundo</Label>
+                  <Input
+                    placeholder="https://exemplo.com/arte-fundo.png"
+                    value={settings.backgroundUrl || ''}
+                    onChange={(event) => onChange('backgroundUrl', event.target.value)}
+                  />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Upload da imagem</Label>
+                    <Input type="file" accept="image/*" onChange={(event) => onUpload(event.target.files?.[0])} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-5 rounded-lg border border-border p-4">
+              <div>
+                <Label>Área da mídia</Label>
+                <p className="text-sm text-muted-foreground">Ajuste tamanho e posição do patrocinador sobre o fundo.</p>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <Label>Largura · laterais</Label>
+                  <span className="text-xs tabular-nums text-muted-foreground">{contentWidth}%</span>
+                </div>
+                <Slider
+                  value={[contentWidth]}
+                  onValueChange={([value]) => onChange('contentWidth', value)}
+                  min={10}
+                  max={100}
+                  step={1}
+                  disabled={!settings.enabled}
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <Label>Altura · cima/baixo</Label>
+                  <span className="text-xs tabular-nums text-muted-foreground">{contentHeight}%</span>
+                </div>
+                <Slider
+                  value={[contentHeight]}
+                  onValueChange={([value]) => onChange('contentHeight', value)}
+                  min={10}
+                  max={100}
+                  step={1}
+                  disabled={!settings.enabled}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-5 border-t border-border/70 pt-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Posição horizontal ({settings.x ?? 50}%)</Label>
+                  <Slider value={[settings.x ?? 50]} onValueChange={([value]) => onChange('x', value)} min={0} max={100} step={1} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Posição vertical ({settings.y ?? 50}%)</Label>
+                  <Slider value={[settings.y ?? 50]} onValueChange={([value]) => onChange('y', value)} min={0} max={100} step={1} />
+                </div>
+              </div>
+              </div>
+            </div>
+          ) : (
+            <div className="animate-in rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground fade-in slide-in-from-bottom-2 duration-300">
+              Modo sem fundo ativo: a mídia ocupa toda a área do telão.
+            </div>
+          )}
+        </div>
+
+        <div className="xl:sticky xl:top-6">
           <SponsorDesignPreview
             title={isNormal ? 'Preview do /telao' : 'Preview do /telao-master'}
             settings={settings}
           />
         </div>
-      </AccordionContent>
-    </AccordionItem>
+      </div>
+    </div>
   )
 }
 

@@ -3,6 +3,9 @@
 import { use, useEffect, useMemo, useState } from 'react'
 import { createSupabaseBrowserClient } from '@/services/supabase/browser'
 
+const OVERLAY_WIDTH = 1920
+const OVERLAY_HEIGHT = 1080
+
 function renderElement(element) {
   return (
     <div
@@ -16,29 +19,24 @@ function renderElement(element) {
         zIndex: element.zIndex,
       }}
     >
-      {element.type === 'image' && element.src && (
-        <img
-          src={element.src}
-          alt=""
-          className="w-full h-full object-contain bg-transparent"
-          draggable={false}
-        />
-      )}
-
-      {element.type === 'text' && (
+      <div className="absolute inset-0 overflow-hidden bg-transparent">
         <div
-          className="w-full h-full flex items-center justify-center text-center bg-transparent"
+          className="absolute"
           style={{
-            fontSize: element.fontSize,
-            color: element.fontColor,
-            fontFamily: element.fontFamily,
-            textShadow: '0 2px 4px rgba(0,0,0,0.5)',
-            lineHeight: 1.2,
+            left: -(element.cropLeft || 0),
+            top: -(element.cropTop || 0),
+            width: element.width + (element.cropLeft || 0) + (element.cropRight || 0),
+            height: element.height + (element.cropTop || 0) + (element.cropBottom || 0),
           }}
         >
-          {element.text}
+          {element.type === 'image' && element.src ? <img src={element.src} alt="" className="h-full w-full object-contain bg-transparent" draggable={false} /> : null}
+          {element.type === 'text' ? (
+            <div className="flex h-full w-full items-center justify-center bg-transparent text-center" style={{ fontSize: element.fontSize, color: element.fontColor, fontFamily: element.fontFamily, textShadow: '0 2px 4px rgba(0,0,0,0.5)', lineHeight: 1.2 }}>
+              {element.text}
+            </div>
+          ) : null}
         </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -122,12 +120,12 @@ export default function PublicOverlayPage({ params }) {
       .sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0))
   }, [overlay])
 
-  const scale = overlay
-    ? Math.min(
-      viewport.width / Math.max(overlay.width || 1920, 1),
-      viewport.height / Math.max(overlay.height || 1080, 1)
-    )
-    : 1
+  const fitScale = Math.min(
+    viewport.width / OVERLAY_WIDTH,
+    viewport.height / OVERLAY_HEIGHT
+  )
+  const unusedWidth = Math.max(0, (viewport.width - OVERLAY_WIDTH * fitScale) / 2)
+  const unusedHeight = Math.max(0, (viewport.height - OVERLAY_HEIGHT * fitScale) / 2)
 
   if (!loaded || !overlay) {
     return <div className="fixed inset-0 bg-transparent overflow-hidden" />
@@ -136,22 +134,30 @@ export default function PublicOverlayPage({ params }) {
   return (
     <div
       data-overlay-transparent-root
-      className="fixed inset-0 bg-transparent overflow-hidden flex items-center justify-center select-none pointer-events-none"
+      className="fixed inset-0 overflow-hidden select-none pointer-events-none"
       style={{
         userSelect: 'none',
         background: 'transparent',
       }}
     >
+      <div aria-hidden className="absolute inset-x-0 top-0 bg-black transition-[height] duration-200 ease-out" style={{ height: unusedHeight }} />
+      <div aria-hidden className="absolute inset-x-0 bottom-0 bg-black transition-[height] duration-200 ease-out" style={{ height: unusedHeight }} />
+      <div aria-hidden className="absolute left-0 bg-black transition-[top,bottom,width] duration-200 ease-out" style={{ top: unusedHeight, bottom: unusedHeight, width: unusedWidth }} />
+      <div aria-hidden className="absolute right-0 bg-black transition-[top,bottom,width] duration-200 ease-out" style={{ top: unusedHeight, bottom: unusedHeight, width: unusedWidth }} />
       <div
-        className="relative bg-transparent overflow-visible origin-center select-none"
-        style={{
-          width: overlay.width || 1920,
-          height: overlay.height || 1080,
-          transform: `scale(${scale})`,
-          background: 'transparent',
-        }}
+        className="absolute left-1/2 top-1/2 flex aspect-video w-[min(100vw,177.777vh)] -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden bg-transparent transition-[width] duration-200 ease-out"
       >
-        {elements.map(renderElement)}
+        <div
+          className="relative shrink-0 origin-center select-none bg-transparent transition-transform duration-200 ease-out"
+          style={{
+            width: OVERLAY_WIDTH,
+            height: OVERLAY_HEIGHT,
+            transform: `scale(${fitScale})`,
+            background: 'transparent',
+          }}
+        >
+          {elements.map(renderElement)}
+        </div>
       </div>
     </div>
   )

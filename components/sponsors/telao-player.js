@@ -22,6 +22,7 @@ export default function TelaoPlayer({ kind = 'NORMAL', backgroundMode = 'auto' }
   const startTimeRef = useRef(Date.now())
   const flushTimerRef = useRef(null)
   const rotationTimerRef = useRef(null)
+  const advancingRef = useRef(false)
 
   useEffect(() => {
     adsRef.current = ads
@@ -143,24 +144,30 @@ export default function TelaoPlayer({ kind = 'NORMAL', backgroundMode = 'auto' }
   }, [carregarAnuncios])
 
   const avancarAd = useCallback(async () => {
-    if (ads.length === 0) return
+    if (ads.length === 0 || advancingRef.current) return
+    advancingRef.current = true
+    if (rotationTimerRef.current) window.clearTimeout(rotationTimerRef.current)
 
     const currentAd = ads[currentIndex] || ads[0]
     const durationSeconds = Math.max(0, Math.round((Date.now() - startTimeRef.current) / 1000))
 
     const metricsPaused = Boolean(sponsorSettings.metricsPaused?.[kind])
 
-    if (sponsorSettings.metricsEnabled && !metricsPaused) {
-      await registrarExibicao({
-        sponsorId: currentAd.id,
-        displayedAt: new Date(startTimeRef.current).toISOString(),
-        durationSeconds,
-        source: kind === 'MASTER' ? 'telao-master' : 'telao',
-      })
-    }
+    try {
+      if (sponsorSettings.metricsEnabled && !metricsPaused) {
+        await registrarExibicao({
+          sponsorId: currentAd.id,
+          displayedAt: new Date(startTimeRef.current).toISOString(),
+          durationSeconds,
+          source: kind === 'MASTER' ? 'telao-master' : 'telao',
+        })
+      }
 
-    setCurrentIndex((prev) => (prev + 1) % ads.length)
-    startTimeRef.current = Date.now()
+      setCurrentIndex((prev) => (prev + 1) % ads.length)
+      startTimeRef.current = Date.now()
+    } finally {
+      advancingRef.current = false
+    }
   }, [ads, currentIndex, kind, registrarExibicao, sponsorSettings.metricsEnabled, sponsorSettings.metricsPaused])
 
   useEffect(() => {
@@ -240,11 +247,11 @@ export default function TelaoPlayer({ kind = 'NORMAL', backgroundMode = 'auto' }
     }
   }, [])
   const showBackground = useMemo(() => {
-    if (!design?.backgroundEnabled || !design?.backgroundUrl) return false
+    if (!design?.enabled || !design?.backgroundUrl) return false
     if (backgroundMode === 'always') return true
     if (backgroundMode === 'never') return false
     return true
-  }, [backgroundMode, design?.backgroundEnabled, design?.backgroundUrl])
+  }, [backgroundMode, design?.backgroundUrl, design?.enabled])
 
   if (!loaded) {
     return <div className="fixed inset-0 overflow-hidden bg-black" />
@@ -266,7 +273,7 @@ export default function TelaoPlayer({ kind = 'NORMAL', backgroundMode = 'auto' }
 
   return (
     <main className="fixed inset-0 overflow-hidden bg-black select-none" style={{ userSelect: 'none' }}>
-      <div className="absolute left-1/2 top-1/2 aspect-video w-[min(100vw,177.777vh)] -translate-x-1/2 -translate-y-1/2 overflow-hidden bg-black lg:inset-0 lg:h-full lg:w-full lg:max-w-none lg:translate-x-0 lg:translate-y-0">
+      <div className="absolute left-1/2 top-1/2 aspect-video w-[min(100vw,177.777vh)] -translate-x-1/2 -translate-y-1/2 overflow-hidden bg-black transition-[width] duration-200 ease-out">
         {showBackground ? (
           <>
             <img
@@ -276,12 +283,12 @@ export default function TelaoPlayer({ kind = 'NORMAL', backgroundMode = 'auto' }
               draggable={false}
             />
             <div className="absolute inset-0">
-              <TelaoMedia ad={currentAd} design={design} onVideoEnded={avancarAd} />
+              <TelaoMedia ad={currentAd} design={design} onVideoEnded={avancarAd} videoDurationLimit={currentAd.duration} />
             </div>
           </>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-black">
-            <TelaoMedia ad={currentAd} design={design} onVideoEnded={avancarAd} />
+            <TelaoMedia ad={currentAd} design={design} onVideoEnded={avancarAd} videoDurationLimit={currentAd.duration} />
           </div>
         )}
       </div>

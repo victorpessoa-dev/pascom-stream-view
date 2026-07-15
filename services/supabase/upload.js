@@ -118,3 +118,34 @@ export async function uploadMedia(file, folder = 'uploads') {
   const { data } = supabase.storage.from(BUCKET).getPublicUrl(path)
   return data.publicUrl
 }
+
+export function getUploadedMediaPath(source = '') {
+  try {
+    const url = new URL(String(source).trim())
+    const marker = `/storage/v1/object/public/${BUCKET}/`
+    const markerIndex = url.pathname.indexOf(marker)
+    if (markerIndex === -1) return ''
+    return decodeURIComponent(url.pathname.slice(markerIndex + marker.length))
+  } catch {
+    return ''
+  }
+}
+
+export async function deleteUploadedMedia(source) {
+  const path = getUploadedMediaPath(source)
+  if (!path) return false
+
+  const supabase = createSupabaseBrowserClient()
+  const { data, error } = await supabase.storage.from(BUCKET).remove([path])
+  if (error) throw error
+  if (!data?.some((item) => item.name === path || item.name === path.split('/').pop())) {
+    throw new Error(`O Supabase não confirmou a exclusão de ${path}`)
+  }
+  return true
+}
+
+export async function deleteUploadedMediaBatch(sources = []) {
+  const uniqueSources = [...new Set(sources.filter(Boolean))]
+  const results = await Promise.allSettled(uniqueSources.map((source) => deleteUploadedMedia(source)))
+  return results.filter((result) => result.status === 'rejected').map((result) => result.reason)
+}

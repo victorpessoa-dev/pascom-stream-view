@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeFileName, validateMediaFile } from '@/services/supabase/upload'
+import { getUploadedMediaPath, sanitizeFileName, validateMediaFile } from '@/services/supabase/upload'
 
 describe('media upload validation', () => {
   it('sanitizes filenames for storage paths', () => {
@@ -25,5 +25,11 @@ describe('media upload validation', () => {
       size: 1024,
       type: '',
     })).toThrow('Tipo de arquivo não permitido')
+  })
+
+  it('extracts only files from the application storage bucket', () => {
+    expect(getUploadedMediaPath('https://project.supabase.co/storage/v1/object/public/pascom-media/sponsors/video%20teste.mp4'))
+      .toBe('sponsors/video teste.mp4')
+    expect(getUploadedMediaPath('https://youtube.com/watch?v=abc')).toBe('')
   })
 })

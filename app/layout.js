@@ -1,4 +1,5 @@
 import { Analytics } from '@vercel/analytics/next'
+import BrowserZoomGuard from '@/components/shared/browser-zoom-guard'
 import './globals.css'
 
 export const metadata = {
@@ -45,12 +46,15 @@ export const metadata = {
 
 export const viewport = {
   themeColor: '#1e40af',
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR" className="dark bg-background">
       <body className="font-sans antialiased">
+        <BrowserZoomGuard />
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
