@@ -29,9 +29,9 @@ function formatDateTime(value) {
 
 function MetricItem({ label, value, accent = false }) {
   return (
-    <div className="min-w-0 border-l border-border/70 pl-4 first:border-l-0 first:pl-0">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
-      <div className={`mt-1 text-xl font-semibold sm:text-2xl ${accent ? 'text-primary' : 'text-foreground'}`}>{value}</div>
+    <div className="min-w-0 rounded-lg border border-border/70 bg-card/35 p-4">
+      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
+      <div className={`mt-2 text-2xl font-semibold leading-none ${accent ? 'text-primary' : 'text-foreground'}`}>{value}</div>
     </div>
   )
 }
@@ -108,36 +108,45 @@ export default function PainelTelaoPage() {
         </section>
 
         {isLoaded ? (
-          <section className="grid gap-4 border-b border-border/70 py-5 sm:grid-cols-2 xl:grid-cols-6">
+          <section className="grid gap-3 py-5 sm:grid-cols-2 xl:grid-cols-6">
             <MetricItem label="Anúncios" value={ads.length} />
             <MetricItem label="Ativos" value={activeAds.length} accent />
             <MetricItem label="Exibições" value={totalViews} />
             <MetricItem label="Tempo exibido" value={formatDuration(totalSeconds)} />
             <MetricItem label="Rodada atual" value={formatDuration(nextRoundSeconds)} />
-            <div className="min-w-0 border-l border-border/70 pl-4">
-              <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="min-w-0 rounded-lg border border-border/70 bg-card/35 p-4">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
                 <TimerReset className="h-3.5 w-3.5" />
                 Última leitura
               </div>
-              <div className="mt-1 text-sm font-medium text-foreground">{formatDateTime(latestDisplay)}</div>
+              <div className="mt-2 text-sm font-semibold leading-none text-foreground">{formatDateTime(latestDisplay)}</div>
             </div>
           </section>
         ) : null}
 
-        <section className="flex flex-col gap-3 border-b border-border/70 py-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="text-sm font-medium text-foreground">Status operacional</div>
-            <div className="mt-1 text-sm text-muted-foreground">
-              O modo normal usa a arte padrão do tipo NORMAL. O modo master usa o layout configurado para MASTER.
+        <section className="rounded-lg border border-border/70 bg-card/25 p-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-foreground">Status operacional</div>
+              <div className="mt-1 text-sm leading-6 text-muted-foreground">
+                NORMAL usa a arte padrão. MASTER usa o layout configurado para o telão master.
+              </div>
             </div>
-          </div>
-          <div className="text-sm text-muted-foreground">
-            Duração padrão: <span className="font-medium text-foreground">NORMAL {defaultDurations.NORMAL}s</span> ·{' '}
-            <span className="font-medium text-foreground">MASTER {defaultDurations.MASTER}s</span>
+            <div className="flex flex-wrap gap-2 text-sm">
+              <span className="rounded-md border border-border bg-background/60 px-3 py-2 text-muted-foreground">
+                Duração padrão
+              </span>
+              <span className="rounded-md border border-primary/25 bg-primary/10 px-3 py-2 font-semibold text-foreground">
+                NORMAL {defaultDurations.NORMAL}s
+              </span>
+              <span className="rounded-md border border-primary/25 bg-primary/10 px-3 py-2 font-semibold text-foreground">
+                MASTER {defaultDurations.MASTER}s
+              </span>
+            </div>
           </div>
         </section>
 
-        <section className="pt-5">
+        <section className="pt-6">
           <AdManager defaultDurations={defaultDurations} />
         </section>
       </PageContainer>

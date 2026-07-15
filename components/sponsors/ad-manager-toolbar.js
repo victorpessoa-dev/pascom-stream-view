@@ -24,9 +24,9 @@ export function AdManagerToolbar({
   const hasAnyActiveSponsor = normalActiveCount > 0 || masterActiveCount > 0
 
   return (
-    <section className="flex flex-col gap-4 border-b border-border/70 pb-5">
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-        <div>
+    <section className="space-y-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
           <div className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Playlist pública</div>
           <h2 className="mt-1 text-xl font-semibold text-foreground">Patrocínios cadastrados</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -40,8 +40,10 @@ export function AdManagerToolbar({
         </Button>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(240px,320px)_1fr_auto] lg:items-center">
-        <div className="relative min-w-0">
+      <div className="grid gap-3 rounded-lg border border-border/70 bg-card/25 p-3 xl:grid-cols-[minmax(260px,360px)_minmax(360px,1fr)_auto] xl:items-stretch">
+        <div className="flex min-w-0 flex-col justify-center gap-2">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Busca</div>
+          <div className="relative min-w-0">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={searchTerm}
@@ -49,9 +51,10 @@ export function AdManagerToolbar({
             placeholder="Buscar patrocinador, tipo ou site"
             className="pl-9"
           />
+          </div>
         </div>
 
-        <div className="rounded-lg border border-border/80 p-3">
+        <div className="rounded-lg border border-border/80 bg-background/35 p-3">
           <div className="flex items-center justify-between gap-4">
             <div>
               <label htmlFor="metrics-enabled" className="cursor-pointer text-sm font-medium text-foreground">
@@ -100,15 +103,18 @@ export function AdManagerToolbar({
           ) : null}
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => onCopyPublicUrl('/telao')}>
-            <Copy className="mr-2 h-4 w-4" />
-            /telao
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => onCopyPublicUrl('/telao-master')}>
-            <Copy className="mr-2 h-4 w-4" />
-            /telao-master
-          </Button>
+        <div className="flex min-w-0 flex-col justify-center gap-2 xl:min-w-[250px]">
+          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Atalhos</div>
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+            <Button variant="outline" size="sm" onClick={() => onCopyPublicUrl('/telao')} className="justify-start">
+              <Copy className="mr-2 h-4 w-4" />
+              /telao
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => onCopyPublicUrl('/telao-master')} className="justify-start">
+              <Copy className="mr-2 h-4 w-4" />
+              /telao-master
+            </Button>
+          </div>
         </div>
       </div>
     </section>
