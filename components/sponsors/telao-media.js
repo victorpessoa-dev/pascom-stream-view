@@ -1,9 +1,118 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getDesignValue } from '@/lib/services/telao-player'
+import { getYouTubeEmbedUrl, getYouTubeThumbnail } from '@/lib/utils/video-source'
 
 const DEFAULT_MEDIA_BACKGROUND = '#050505'
+
+export function YouTubeVideo({
+  source,
+  style,
+  onEnded,
+  className = '',
+  title = 'Vídeo do patrocinador',
+  endOffset = 1.5,
+  repeatUntilLimit = false,
+  cropPercent = 8,
+}) {
+  const frameRef = useRef(null)
+  const playbackPollRef = useRef(null)
+  const durationRef = useRef(0)
+  const endingRef = useRef(false)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const embedUrl = getYouTubeEmbedUrl(source)
+  const thumbnail = getYouTubeThumbnail(source)
+
+  useEffect(() => {
+    setIsPlaying(false)
+    durationRef.current = 0
+    endingRef.current = false
+    return () => {
+      if (playbackPollRef.current) window.clearInterval(playbackPollRef.current)
+    }
+  }, [source])
+
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (!String(event.origin).endsWith('youtube.com') || event.source !== frameRef.current?.contentWindow) return
+
+      try {
+        const payload = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+        if (payload?.event === 'onStateChange' && payload.info === 1) {
+          setIsPlaying(true)
+        }
+        if (payload?.event === 'onStateChange' && payload.info === 0) {
+          if (repeatUntilLimit) {
+            frameRef.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [0, true] }), 'https://www.youtube.com')
+            frameRef.current?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), 'https://www.youtube.com')
+            endingRef.current = false
+          } else {
+            onEnded?.()
+          }
+        }
+        if (payload?.event === 'infoDelivery') {
+          const duration = Number(payload.info?.duration)
+          const currentTime = Number(payload.info?.currentTime)
+          if (Number.isFinite(duration) && duration > 0) durationRef.current = duration
+
+          if (
+            !endingRef.current &&
+            durationRef.current > 3 &&
+            Number.isFinite(currentTime) &&
+            durationRef.current - currentTime <= endOffset
+          ) {
+            endingRef.current = true
+            const player = frameRef.current?.contentWindow
+            if (repeatUntilLimit) {
+              player?.postMessage(JSON.stringify({ event: 'command', func: 'seekTo', args: [0, true] }), 'https://www.youtube.com')
+              player?.postMessage(JSON.stringify({ event: 'command', func: 'playVideo', args: [] }), 'https://www.youtube.com')
+              window.setTimeout(() => { endingRef.current = false }, 500)
+            } else {
+              player?.postMessage(JSON.stringify({ event: 'command', func: 'pauseVideo', args: [] }), 'https://www.youtube.com')
+              onEnded?.()
+            }
+          }
+        }
+      } catch {
+        // Ignora mensagens que não pertencem à API do player.
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [onEnded])
+
+  return (
+    <div className={`relative overflow-hidden ${className}`} style={style}>
+      {thumbnail ? <img src={thumbnail} alt="" className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-200 ${isPlaying ? 'opacity-0' : 'opacity-100'}`} /> : null}
+      <iframe
+        ref={frameRef}
+        src={embedUrl}
+        title={title}
+        className={`pointer-events-none absolute border-0 transition-opacity duration-150 ${isPlaying ? 'opacity-100' : 'opacity-0'}`}
+        style={{
+          left: `-${cropPercent}%`,
+          top: `-${cropPercent}%`,
+          width: `${100 + cropPercent * 2}%`,
+          height: `${100 + cropPercent * 2}%`,
+        }}
+        allow="autoplay; encrypted-media"
+        referrerPolicy="strict-origin-when-cross-origin"
+        onLoad={(event) => {
+          event.currentTarget.contentWindow?.postMessage(JSON.stringify({ event: 'listening' }), 'https://www.youtube.com')
+          setIsPlaying(true)
+          if (playbackPollRef.current) window.clearInterval(playbackPollRef.current)
+          playbackPollRef.current = window.setInterval(() => {
+            const player = frameRef.current?.contentWindow
+            player?.postMessage(JSON.stringify({ event: 'command', func: 'getDuration', args: [] }), 'https://www.youtube.com')
+            player?.postMessage(JSON.stringify({ event: 'command', func: 'getCurrentTime', args: [] }), 'https://www.youtube.com')
+          }, 500)
+        }}
+      />
+    </div>
+  )
+}
 
 function clampColor(value) {
   return Math.max(0, Math.min(255, Math.round(value)))
@@ -76,7 +185,7 @@ function getDominantColorFromCanvas(source) {
   return `rgb(${clampColor(dominant.red / dominant.score)}, ${clampColor(dominant.green / dominant.score)}, ${clampColor(dominant.blue / dominant.score)})`
 }
 
-function useMediaBackgroundColor(src, mediaType) {
+export function useMediaBackgroundColor(src, mediaType) {
   const [color, setColor] = useState(DEFAULT_MEDIA_BACKGROUND)
 
   useEffect(() => {
@@ -138,7 +247,7 @@ function useMediaBackgroundColor(src, mediaType) {
   return color
 }
 
-export default function TelaoMedia({ ad, design, onVideoEnded }) {
+export default function TelaoMedia({ ad, design, onVideoEnded, videoDurationLimit }) {
   const backgroundColor = useMediaBackgroundColor(ad?.src, ad?.mediaType)
   const layoutEnabled = Boolean(design?.enabled)
   const width = getDesignValue(design, 'contentWidth', 'imageWidth', 100)
@@ -146,6 +255,7 @@ export default function TelaoMedia({ ad, design, onVideoEnded }) {
   const x = getDesignValue(design, 'x', null, 50)
   const y = getDesignValue(design, 'y', null, 50)
   const objectFit = design?.objectFit || 'contain'
+  const youtubeEmbedUrl = ad.mediaType === 'video' ? getYouTubeEmbedUrl(ad.src) : ''
 
   const frameStyle = layoutEnabled
     ? {
@@ -175,16 +285,30 @@ export default function TelaoMedia({ ad, design, onVideoEnded }) {
   return (
     <div className="overflow-hidden" style={frameStyle}>
       {ad.mediaType === 'video' ? (
-        <video
-          key={ad.id}
-          src={ad.src}
-          className="relative block"
-          style={mediaStyle}
-          autoPlay
-          muted
-          playsInline
-          onEnded={onVideoEnded}
-        />
+        youtubeEmbedUrl ? (
+          <YouTubeVideo source={ad.src} style={mediaStyle} repeatUntilLimit />
+        ) : (
+          <video
+            key={ad.id}
+            src={ad.src}
+            className="pointer-events-none relative block"
+            style={mediaStyle}
+            autoPlay
+            loop
+            muted
+            playsInline
+            disablePictureInPicture
+            controlsList="nodownload nofullscreen noremoteplayback"
+            tabIndex={-1}
+            onTimeUpdate={(event) => {
+              const limit = Number(videoDurationLimit)
+              if (Number.isFinite(limit) && limit > 0 && event.currentTarget.currentTime >= limit) {
+                event.currentTarget.pause()
+                onVideoEnded?.()
+              }
+            }}
+          />
+        )
       ) : (
         <img src={ad.src} alt={ad.name} className="relative block" style={mediaStyle} draggable={false} />
       )}

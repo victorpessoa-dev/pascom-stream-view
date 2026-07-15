@@ -132,8 +132,12 @@ export default function OverlayList({ searchQuery = '' }) {
     if (!overlayPendingDelete) return
 
     try {
-      await deleteOverlay(overlayPendingDelete.id)
-      toast.success(`Overlay "${overlayPendingDelete.name}" excluído com sucesso`)
+      const result = await deleteOverlay(overlayPendingDelete.id)
+      if (result?.storageErrors?.length) {
+        toast.warning(`Overlay "${overlayPendingDelete.name}" excluído, mas um ou mais arquivos não puderam ser removidos`)
+      } else {
+        toast.success(`Overlay "${overlayPendingDelete.name}" excluído com sucesso`)
+      }
       setOverlayPendingDelete(null)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Erro ao excluir overlay')

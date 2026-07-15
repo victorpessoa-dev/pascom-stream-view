@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Accordion } from '@/components/ui/accordion'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +20,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { BrandPreview, DesignAdjustmentDrop } from '@/components/settings/settings-page-parts'
+import { defaultSponsorSettings } from '@/lib/mappers/settings'
 
 export function SettingsHeader({ onReset, onSave, hasChanges, isSaving }) {
   return (
@@ -229,22 +229,33 @@ export function SponsorDesignSection({ sponsorSettings, onDesignChange, onDesign
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Accordion type="multiple" defaultValue={['NORMAL']} className="space-y-4">
-          <DesignAdjustmentDrop
-            kind="NORMAL"
-            settings={sponsorSettings.designs.NORMAL}
-            onChange={(key, value) => onDesignChange('NORMAL', key, value)}
-            onBatchChange={(values) => onDesignBatchChange('NORMAL', values)}
-            onUpload={(file) => onUploadBackground('NORMAL', file)}
-          />
-          <DesignAdjustmentDrop
-            kind="MASTER"
-            settings={sponsorSettings.designs.MASTER}
-            onChange={(key, value) => onDesignChange('MASTER', key, value)}
-            onBatchChange={(values) => onDesignBatchChange('MASTER', values)}
-            onUpload={(file) => onUploadBackground('MASTER', file)}
-          />
-        </Accordion>
+        <Tabs defaultValue="NORMAL" className="space-y-4">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="NORMAL">Telão normal</TabsTrigger>
+            <TabsTrigger value="MASTER">Telão master</TabsTrigger>
+          </TabsList>
+          {['NORMAL', 'MASTER'].map((kind) => (
+            <TabsContent key={kind} value={kind}>
+              <DesignAdjustmentDrop
+                kind={kind}
+                settings={sponsorSettings.designs[kind]}
+                onChange={(key, value) => onDesignChange(kind, key, value)}
+                onModeChange={(checked) => onDesignBatchChange(kind, { enabled: checked, backgroundEnabled: checked })}
+                onUpload={(file) => onUploadBackground(kind, file)}
+                onRestore={() => {
+                  const defaults = defaultSponsorSettings.designs[kind]
+                  onDesignBatchChange(kind, {
+                    contentWidth: defaults.contentWidth,
+                    contentHeight: defaults.contentHeight,
+                    x: defaults.x,
+                    y: defaults.y,
+                    objectFit: defaults.objectFit,
+                  })
+                }}
+              />
+            </TabsContent>
+          ))}
+        </Tabs>
       </CardContent>
     </Card>
   )

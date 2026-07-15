@@ -27,11 +27,15 @@ function formatDateTime(value) {
   return new Date(value).toLocaleString('pt-BR')
 }
 
-function MetricItem({ label, value, accent = false }) {
+function MetricItem({ label, value, detail, accent = false, icon: Icon }) {
   return (
     <div className="min-w-0 rounded-lg border border-border/70 bg-card/35 p-4">
-      <div className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">{label}</div>
-      <div className={`mt-2 text-2xl font-semibold leading-none ${accent ? 'text-primary' : 'text-foreground'}`}>{value}</div>
+      <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        {Icon ? <Icon className="h-3.5 w-3.5" /> : null}
+        {label}
+      </div>
+      <div className={`mt-2 text-xl font-semibold leading-none ${accent ? 'text-primary' : 'text-foreground'}`}>{value}</div>
+      <div className="mt-2 text-xs text-muted-foreground">{detail}</div>
     </div>
   )
 }
@@ -82,7 +86,7 @@ export default function PainelTelaoPage() {
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
               <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Operação do Telão</div>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">Painel de patrocínios</h1>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Painel de patrocínios</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                 Controle o que entra na playlist pública, acompanhe a rodada atual e ajuste a operação dos dois telões a partir de uma visão única.
               </p>
@@ -108,19 +112,10 @@ export default function PainelTelaoPage() {
         </section>
 
         {isLoaded ? (
-          <section className="grid gap-3 py-5 sm:grid-cols-2 xl:grid-cols-6">
-            <MetricItem label="Anúncios" value={ads.length} />
-            <MetricItem label="Ativos" value={activeAds.length} accent />
-            <MetricItem label="Exibições" value={totalViews} />
-            <MetricItem label="Tempo exibido" value={formatDuration(totalSeconds)} />
-            <MetricItem label="Rodada atual" value={formatDuration(nextRoundSeconds)} />
-            <div className="min-w-0 rounded-lg border border-border/70 bg-card/35 p-4">
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                <TimerReset className="h-3.5 w-3.5" />
-                Última leitura
-              </div>
-              <div className="mt-2 text-sm font-semibold leading-none text-foreground">{formatDateTime(latestDisplay)}</div>
-            </div>
+          <section className="grid gap-3 py-5 md:grid-cols-3">
+            <MetricItem label="Patrocinadores" value={`${activeAds.length} ativos`} detail={`${ads.length} cadastrado(s) no total`} accent />
+            <MetricItem label="Desempenho" value={`${totalViews} exibições`} detail={`${formatDuration(totalSeconds)} de tempo exibido`} />
+            <MetricItem label="Ciclo atual" value={formatDuration(nextRoundSeconds)} detail={`Última leitura: ${formatDateTime(latestDisplay)}`} icon={TimerReset} />
           </section>
         ) : null}
 

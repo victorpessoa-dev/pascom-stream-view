@@ -102,7 +102,11 @@ export default function StaticMediaFrame({
           className={className}
           muted
           playsInline
+          disablePictureInPicture
+          controlsList="nodownload nofullscreen noremoteplayback"
+          tabIndex={-1}
           preload="metadata"
+          referrerPolicy="no-referrer"
           onError={onError}
         />
       )
@@ -116,6 +120,7 @@ export default function StaticMediaFrame({
         draggable={draggable}
         loading="lazy"
         decoding="async"
+        referrerPolicy="no-referrer"
         onError={onError}
       />
     )
@@ -133,11 +138,22 @@ export default function StaticMediaFrame({
         <video
           ref={videoRef}
           src={src}
+          crossOrigin="anonymous"
           className={`absolute inset-0 ${className} ${captured ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
           muted
           playsInline
-          preload="metadata"
-          onLoadedData={(event) => {
+          disablePictureInPicture
+          controlsList="nodownload nofullscreen noremoteplayback"
+          tabIndex={-1}
+          preload="auto"
+          referrerPolicy="no-referrer"
+          onLoadedMetadata={(event) => {
+            const video = event.currentTarget
+            video.currentTime = Number.isFinite(video.duration)
+              ? Math.min(1, Math.max(0, video.duration / 2))
+              : 0
+          }}
+          onSeeked={(event) => {
             event.currentTarget.pause()
             drawSourceToCanvas(event.currentTarget)
           }}
@@ -155,6 +171,7 @@ export default function StaticMediaFrame({
           draggable={draggable}
           loading="lazy"
           decoding="async"
+          referrerPolicy="no-referrer"
           className={`absolute inset-0 ${className} ${captured ? 'pointer-events-none opacity-0' : 'opacity-100'}`}
           onLoad={(event) => {
             drawSourceToCanvas(event.currentTarget)

@@ -1,30 +1,15 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
+import { Menu } from 'lucide-react'
 import AppSidebar from '@/components/layout/app-sidebar'
 import AppFooter from '@/components/shared/app-footer'
 import { Button } from '@/components/ui/button'
 
-const SIDEBAR_STORAGE_KEY = 'pascom:admin-sidebar-collapsed'
-
-function getInitialAdminLayout() {
-  if (typeof window === 'undefined') {
-    return { sidebarWidth: 72, isMobileAdmin: false }
-  }
-
-  const isMobileAdmin = window.innerWidth < 768
-  const collapsed = window.innerWidth < 1280 || localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true'
-
-  return {
-    sidebarWidth: isMobileAdmin ? 0 : collapsed ? 72 : 260,
-    isMobileAdmin,
-  }
-}
-
 export default function AppShell({ children }) {
-  const [sidebarWidth, setSidebarWidth] = useState(() => getInitialAdminLayout().sidebarWidth)
-  const [isMobileAdmin, setIsMobileAdmin] = useState(() => getInitialAdminLayout().isMobileAdmin)
+  const [sidebarWidth, setSidebarWidth] = useState(64)
+  const [isMobileAdmin, setIsMobileAdmin] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     const updateWidth = () => {
@@ -51,36 +36,23 @@ export default function AppShell({ children }) {
     }
   }, [])
 
-  if (isMobileAdmin) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-background p-6">
-        <div className="w-full max-w-sm rounded-lg border border-border bg-card p-6 text-center shadow-xl">
-          <img src="/brand/icon-logo.svg" alt="" className="mx-auto h-12 w-12 object-contain" />
-          <h1 className="mt-5 text-xl font-semibold text-foreground">Painel administrativo</h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            O admin não funciona em modo mobile. Acesse pelo computador ou por uma tela maior.
-          </p>
-          <div className="mt-6 grid gap-2">
-            <Button asChild>
-              <Link href="/">Página pública</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/telao">Abrir telão</Link>
-            </Button>
-          </div>
-        </div>
-      </main>
-    )
-  }
-
   return (
     <div className="min-h-screen overflow-x-hidden bg-background">
-      <AppSidebar />
+      <AppSidebar mobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)} />
+      {isMobileAdmin ? (
+        <header className="sticky top-0 z-30 flex min-h-14 items-center gap-3 border-b border-border bg-background/95 px-4 backdrop-blur md:hidden">
+          <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(true)} aria-label="Abrir menu principal">
+            <Menu className="h-5 w-5" />
+          </Button>
+          <img src="/brand/icon-logo.svg" alt="" className="h-8 w-8 object-contain" />
+          <span className="truncate text-sm font-semibold">Painel administrativo</span>
+        </header>
+      ) : null}
       <main
         className="flex min-h-screen min-w-0 flex-col items-center transition-sidebar"
         style={{
-          marginLeft: sidebarWidth,
-          width: `calc(100% - ${sidebarWidth}px)`,
+          marginLeft: isMobileAdmin ? 0 : sidebarWidth,
+          width: isMobileAdmin ? '100%' : `calc(100% - ${sidebarWidth}px)`,
         }}
       >
         <div className="flex min-h-screen w-full min-w-0 flex-col">

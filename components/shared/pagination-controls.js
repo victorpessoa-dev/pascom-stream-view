@@ -20,7 +20,7 @@ export default function PaginationControls({
       <div className="text-sm text-muted-foreground" aria-live="polite">
         Página {currentPage} de {totalPages} · {totalItems} {itemLabel}
       </div>
-      <div className="flex gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:flex">
         <Button
           variant="outline"
           size="sm"
@@ -29,7 +29,7 @@ export default function PaginationControls({
           aria-label="Ir para a página anterior"
         >
           <ChevronLeft className="h-4 w-4" />
-          Anterior
+          <span className="hidden xs:inline">Anterior</span>
         </Button>
         <Button
           variant="outline"
@@ -38,7 +38,7 @@ export default function PaginationControls({
           disabled={currentPage >= totalPages}
           aria-label="Ir para a próxima página"
         >
-          Próxima
+          <span className="hidden xs:inline">Próxima</span>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>

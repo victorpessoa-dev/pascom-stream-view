@@ -51,7 +51,7 @@ export default function OverlaysPage() {
           <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
               <div className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">Biblioteca de Overlay</div>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">Gestão de sobreposições</h1>
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">Gestão de sobreposições</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                 Organize seus overlays como uma biblioteca operacional: encontre rápido, veja o conteúdo principal e entre direto no editor ou na visualização pública.
               </p>

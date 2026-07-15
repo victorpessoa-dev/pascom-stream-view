@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, Church, Clock, Eye, ExternalLink, LogIn, MapPin, Megaphone, Play, RefreshCw, Search, Star } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { AlertTriangle, Church, Clock, Eye, LogIn, MapPin, Megaphone, Play, RefreshCw, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -15,7 +14,8 @@ import EmptyState from '@/components/shared/empty-state'
 import PublicNavbar from '@/components/shared/public-navbar'
 import StaticMediaFrame from '@/components/shared/static-media-frame'
 import { normalizeSocialLinks } from '@/components/shared/social-links'
-import { isSafePublicUrl } from '@/lib/utils/url'
+import { useMediaBackgroundColor, YouTubeVideo } from '@/components/sponsors/telao-media'
+import { getYouTubeEmbedUrl, getYouTubeThumbnail } from '@/lib/utils/video-source'
 
 const PUBLIC_PAGE_SIZE = 12
 
@@ -27,15 +27,50 @@ function formatDuration(seconds) {
 }
 
 function Media({ ad, className = '', staticFrame = false }) {
+  const backgroundColor = useMediaBackgroundColor(ad?.src, ad?.mediaType)
+  const backgroundStyle = {
+    backgroundColor,
+    backgroundImage: `radial-gradient(circle at center, color-mix(in srgb, ${backgroundColor} 82%, white 18%), ${backgroundColor})`,
+  }
+  const youtubeThumbnail = ad?.mediaType === 'video' ? getYouTubeThumbnail(ad.src) : ''
+  const youtubeEmbedUrl = ad?.mediaType === 'video' ? getYouTubeEmbedUrl(ad.src) : ''
+
   if (staticFrame) {
-    return <StaticMediaFrame src={ad.src} alt={ad.name} type={ad.mediaType || 'image'} className={className} />
+    return (
+      <div className="h-full w-full overflow-hidden" style={backgroundStyle}>
+        {youtubeThumbnail ? (
+          <img src={youtubeThumbnail} alt={ad.name} className={className} referrerPolicy="no-referrer" />
+        ) : (
+          <StaticMediaFrame src={ad.src} alt={ad.name} type={ad.mediaType || 'image'} className={className} />
+        )}
+      </div>
+    )
   }
 
   if (ad.mediaType === 'video') {
-    return <video src={ad.src} className={className} muted playsInline autoPlay loop />
+    return (
+      <div className="h-full w-full overflow-hidden" style={backgroundStyle}>
+        {youtubeEmbedUrl ? (
+          <YouTubeVideo source={ad.src} title={`Vídeo de ${ad.name}`} className={className} repeatUntilLimit />
+        ) : (
+          <video
+            src={ad.src}
+            className={`pointer-events-none ${className}`}
+            muted
+            playsInline
+            autoPlay
+            loop
+            disablePictureInPicture
+            controlsList="nodownload nofullscreen noremoteplayback"
+            tabIndex={-1}
+            referrerPolicy="no-referrer"
+          />
+        )}
+      </div>
+    )
   }
 
-  return <img src={ad.src} alt={ad.name} className={className} />
+  return <div className="h-full w-full overflow-hidden" style={backgroundStyle}><img src={ad.src} alt={ad.name} className={className} referrerPolicy="no-referrer" /></div>
 }
 
 export default function PublicDashboardPage() {
@@ -231,8 +266,8 @@ export default function PublicDashboardPage() {
               </Button>
             </div>
 
-            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-4 sm:p-6">
-              <div className="flex min-w-0 items-center gap-3 pr-12 text-left sm:gap-4 sm:pr-32">
+            <div className="absolute inset-x-0 bottom-0 flex flex-col items-stretch gap-3 p-4 sm:flex-row sm:items-end sm:justify-between sm:gap-4 sm:p-6">
+              <div className="flex min-w-0 items-center gap-3 text-left sm:gap-4 sm:pr-32">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/70 bg-white/10 text-white shadow-xl sm:h-24 sm:w-24">
                   {parishInfo.parishLogoUrl ? (
                     <img src={parishInfo.parishLogoUrl} alt="" className="h-full w-full object-cover" />
@@ -261,7 +296,7 @@ export default function PublicDashboardPage() {
                 </div>
               </div>
               {parishSocialLinks.length > 0 ? (
-                <div className="absolute bottom-4 right-4 flex max-w-[44%] flex-wrap justify-end gap-2 sm:bottom-6 sm:right-6 sm:max-w-xs">
+                <div className="flex w-full flex-wrap justify-end gap-2 border-t border-white/15 pt-3 sm:absolute sm:bottom-6 sm:right-6 sm:w-auto sm:max-w-xs sm:border-0 sm:pt-0">
                   {parishSocialLinks.map(({ key, label, Icon, url }) => (
                     <a
                       key={key}
@@ -346,18 +381,6 @@ export default function PublicDashboardPage() {
                 <Megaphone className="h-12 w-12 text-muted-foreground" />
               )}
             </div>
-            {current && (
-              <div className="flex items-center justify-between gap-4 p-4">
-                <div className="min-w-0">
-                  <div className="truncate font-semibold">{current.name}</div>
-                  <div className="text-sm text-muted-foreground">{formatDuration(current.duration)} por exibição</div>
-                </div>
-                <Badge className={current.type === 'MASTER' ? 'bg-yellow-500 text-yellow-950' : ''}>
-                  {current.type === 'MASTER' ? <Star className="mr-1 h-3 w-3" /> : null}
-                  {current.type}
-                </Badge>
-              </div>
-            )}
           </div>
 
           <div id="patrocinadores" className="scroll-mt-24 space-y-4">
@@ -410,19 +433,6 @@ export default function PublicDashboardPage() {
                           </div>
                         </CardContent>
                       </Link>
-                      {isSafePublicUrl(ad.websiteUrl) ? (
-                        <div className="border-t border-border/70 px-4 py-3">
-                          <a
-                            href={ad.websiteUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                            Site do patrocinador
-                          </a>
-                        </div>
-                      ) : null}
                     </Card>
                   ))}
                 </div>
