@@ -1,22 +1,22 @@
 export default function manifest() {
   return {
-    name: 'PASCOM Stream View',
-    short_name: 'PASCOM',
-    description: 'Página pública de patrocinadores, telão e transparência da PASCOM.',
-    start_url: '/',
-    scope: '/',
-    display: 'standalone',
-    background_color: '#020617',
-    theme_color: '#1e40af',
-    lang: 'pt-BR',
-    categories: ['productivity', 'utilities'],
+    name: "Virtus PlayCast",
+    short_name: "Virtus",
+    description: "Transmissão de missas e celebrações religiosas da paróquia",
+    start_url: "/",
+    scope: "/",
+    display: "standalone",
+    background_color: "#f8fbff",
+    theme_color: "#f8fbff",
+    lang: "pt-BR",
+    categories: ["religion", "video"],
     icons: [
       {
-        src: '/brand/icon-logo.svg',
-        sizes: 'any',
-        type: 'image/svg+xml',
-        purpose: 'any maskable',
+        src: "/brand/virtus-playcast-mark.png",
+        sizes: "1024x1024",
+        type: "image/png",
+        purpose: "any maskable",
       },
     ],
-  }
+  };
 }

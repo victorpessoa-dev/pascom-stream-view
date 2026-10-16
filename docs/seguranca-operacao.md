@@ -1,8 +1,10 @@
 # Autenticacao, Seguranca, Logs e Operacao
 
+> Atualizado em 2026-10: o acesso administrativo é definido pela propriedade da igreja, não por `profiles.is_admin`.
+
 ## Autenticacao e Acesso
 
-O `proxy.js` protege rotas administrativas. O fluxo valida ambiente Supabase, usuario autenticado e perfil admin.
+O `proxy.js` protege rotas administrativas. O fluxo valida ambiente Supabase, usuário autenticado e uma igreja cujo `admin_id` seja o usuário atual.
 
 ```mermaid
 flowchart TD
@@ -10,7 +12,7 @@ flowchart TD
   B -- Nao --> C[/login?error=missing_supabase_env]
   B -- Sim --> D[auth.getUser]
   D -- Sem usuario --> E[/login]
-  D -- Usuario --> F[profiles.is_admin]
+  D -- Usuario --> F[churches.admin_id]
   F -- false --> G[/login?error=admin_required]
   F -- true --> H[Permite]
 ```
@@ -19,7 +21,7 @@ O admin tambem e bloqueado em modo mobile por UX e operacao.
 
 ## Autorizacao
 
-A escrita nas tabelas sensiveis depende de RLS e `public.is_admin()`:
+A escrita nas tabelas sensíveis depende de RLS e `public.owns_church(church_id)`:
 
 - `sponsors`
 - `overlays`
@@ -71,6 +73,6 @@ Upload valida:
 ## Operacao
 
 - Aplicar migrations antes do deploy.
-- Garantir que ao menos um usuario tenha `profiles.is_admin = true`.
+- Garantir que cada igreja tenha exatamente um `admin_id` e que a conta seja criada por convite.
 - Revisar RPCs `security definer` sempre que tabelas publicas mudarem.
-- Fazer smoke test em `/`, `/login`, `/telao`, `/telao-master`, `/painel-telao` e `/overlay`.
+- Fazer smoke test em `/`, `/login`, `/{slug}`, `/{slug}/ads-telao`, `/painel-telao` e `/overlay`.

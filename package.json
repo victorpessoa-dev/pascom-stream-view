@@ -1,5 +1,5 @@
 {
-  "name": "pascom-stream-view",
+  "name": "virtus-playcast",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -30,6 +30,7 @@
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "framer-motion": "^14.3.0",
     "lucide-react": "^0.564.0",
     "next": "^16.2.4",
     "react": "^19",

@@ -1,63 +1,56 @@
-import { Analytics } from '@vercel/analytics/next'
-import BrowserZoomGuard from '@/components/shared/browser-zoom-guard'
-import './globals.css'
+import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
+import NetworkStatus from "@/components/shared/network-status";
+import PwaServiceWorker from "@/components/shared/pwa-service-worker";
 
 export const metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
-  applicationName: 'PASCOM Stream View',
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
+  ),
   title: {
-    default: 'PASCOM Stream View',
-    template: '%s | PASCOM Stream View',
+    default: "Virtus PlayCast",
+    template: "%s | Virtus PlayCast",
   },
-  description: 'Página pública de patrocinadores, telão e transparência da PASCOM.',
-  keywords: ['pascom', 'patrocinadores', 'telão', 'paróquia', 'transmissão ao vivo'],
-  authors: [{ name: 'PASCOM' }],
-  creator: 'PASCOM',
-  publisher: 'PASCOM',
-  manifest: '/manifest.webmanifest',
+  description: "Transmissões, telões e patrocinadores em um só lugar.",
+  applicationName: "Virtus PlayCast",
+  keywords: [
+    "transmissão",
+    "telão",
+    "igreja",
+    "patrocinadores",
+    "Virtus PlayCast",
+  ],
   icons: {
-    icon: '/brand/icon-logo.svg',
-    shortcut: '/brand/icon-logo.svg',
-    apple: '/brand/icon-logo.svg',
+    icon: "/brand/virtus-playcast-mark.png",
+    apple: "/brand/virtus-playcast-mark.png",
   },
   openGraph: {
-    type: 'website',
-    locale: 'pt_BR',
-    url: '/',
-    siteName: 'PASCOM Stream View',
-    title: 'PASCOM Stream View',
-    description: 'Página pública de patrocinadores, telão e transparência da PASCOM.',
+    type: "website",
+    locale: "pt_BR",
+    siteName: "Virtus PlayCast",
+    title: "Virtus PlayCast",
+    description: "Transmissões, telões e patrocinadores em um só lugar.",
     images: [
-      {
-        url: '/brand/emblema-16-9.svg',
-        width: 1080,
-        height: 358,
-        alt: 'PASCOM Stream View',
-      },
+      { url: "/brand/virtus-playcast-color.png", alt: "Virtus PlayCast" },
     ],
   },
   twitter: {
-    card: 'summary',
-    title: 'PASCOM Stream View',
-    description: 'Página pública de patrocinadores, telão e transparência da PASCOM.',
-    images: ['/brand/emblema-16-9.svg'],
+    card: "summary_large_image",
+    title: "Virtus PlayCast",
+    description: "Transmissões, telões e patrocinadores em um só lugar.",
+    images: ["/brand/virtus-playcast-color.png"],
   },
-}
-
-export const viewport = {
-  themeColor: '#1e40af',
-  maximumScale: 1,
-  userScalable: false,
-}
+};
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="pt-BR" className="dark bg-background">
-      <body className="font-sans antialiased">
-        <BrowserZoomGuard />
+    <html lang="pt-BR" suppressHydrationWarning>
+      <body className="min-h-screen bg-background font-sans antialiased">
         {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        <NetworkStatus />
+        <PwaServiceWorker />
+        <Analytics />
       </body>
     </html>
-  )
+  );
 }

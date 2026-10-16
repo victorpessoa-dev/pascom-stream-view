@@ -1,12 +1,14 @@
 # Banco de Dados
 
+> Snapshot atual: `supabase/schema.sql`. Para bancos existentes, aplique as migrations; não execute o snapshot inteiro sobre um banco já criado.
+
 ## Tabelas
 
-- `profiles`: perfil do usuario Supabase e flag `is_admin`.
+- `profiles`: perfil básico do usuário Supabase.
+- `churches`: dados, slug, estado público (`is_active`) e o único administrador (`admin_id`).
 - `sponsors`: patrocinadores, tipo, midia, status, duracao e metricas.
 - `overlays`: overlays publicos/administrativos com `public_id`.
 - `app_settings`: configuracoes JSON (`sponsor_settings`, `admin_settings`).
-- `telao_sessions`: estrutura historica para sessoes.
 - `sponsor_impressions`: logs de exibicao.
 
 ## ER
@@ -16,7 +18,7 @@ erDiagram
   profiles {
     uuid id PK
     text display_name
-    boolean is_admin
+    uuid admin_id
   }
   sponsors {
     uuid id PK
@@ -71,7 +73,6 @@ erDiagram
 - `get_public_parish_profile`
 - `log_sponsor_impression`
 - `log_sponsor_impressions`
-- `record_sponsor_view`
 
 ## RLS
 
@@ -79,8 +80,8 @@ erDiagram
 flowchart TD
   A[Request] --> B{Operacao}
   B -- Public read --> C[Sponsors ativos / overlays publicos / settings publicas]
-  B -- Admin write --> D[public.is_admin]
-  D --> E[profiles.is_admin pelo auth.uid]
+  B -- Admin write --> D[public.owns_church]
+  D --> E[churches.admin_id pelo auth.uid]
   B -- Profile read --> F[auth.uid = profiles.id]
 ```
 
@@ -100,3 +101,4 @@ flowchart TD
 - Manter `schema.sql` sincronizado com migrations.
 - Revisar RPCs `security definer` ao alterar tabelas.
 - Aplicar migrations novas antes do deploy.
+- A migration `015_remove_legacy_metrics.sql` remove somente RPCs e view sem uso. A tabela histórica `telao_sessions` não é apagada automaticamente; faça backup e remova-a apenas quando confirmar que não precisa do histórico.

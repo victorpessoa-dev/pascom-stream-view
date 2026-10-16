@@ -1,9 +1,18 @@
 -- Adds an administrative RPC for updating sponsors.
 -- This avoids direct client-side table updates being blocked by RLS or by
 -- post-update select policies, while still requiring public.is_admin().
+drop function if exists public.update_admin_sponsor (
+  uuid,
+  text,
+  public.sponsor_kind,
+  text,
+  public.media_type,
+  text,
+  integer,
+  boolean
+);
 
-drop function if exists public.update_admin_sponsor(uuid, text, public.sponsor_kind, text, public.media_type, text, integer, boolean);
-create or replace function public.update_admin_sponsor(
+create or replace function public.update_admin_sponsor (
   sponsor_id_arg uuid,
   name_arg text,
   kind_arg public.sponsor_kind,
@@ -12,8 +21,7 @@ create or replace function public.update_admin_sponsor(
   website_url_arg text default null,
   duration_seconds_arg integer default 10,
   active_arg boolean default true
-)
-returns table (
+) returns table (
   id uuid,
   name text,
   kind public.sponsor_kind,
@@ -28,11 +36,9 @@ returns table (
   last_displayed_at timestamptz,
   created_at timestamptz,
   updated_at timestamptz
-)
-language plpgsql
-security definer
-set search_path = public
-as $$
+) language plpgsql security definer
+set
+  search_path = public as $$
 begin
   if not public.is_admin() then
     raise exception 'Acesso administrativo necessario para atualizar patrocinio'
@@ -83,4 +89,14 @@ begin
 end;
 $$;
 
-grant execute on function public.update_admin_sponsor(uuid, text, public.sponsor_kind, text, public.media_type, text, integer, boolean) to authenticated;
+grant
+execute on function public.update_admin_sponsor (
+  uuid,
+  text,
+  public.sponsor_kind,
+  text,
+  public.media_type,
+  text,
+  integer,
+  boolean
+) to authenticated;

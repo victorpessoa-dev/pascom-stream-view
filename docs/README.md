@@ -1,4 +1,4 @@
-# Documentacao - PASCOM Stream View
+# Documentação - Virtus PlayCast
 
 ## Comece Aqui
 
@@ -6,6 +6,7 @@
 - [Visao geral e arquitetura](./visao-geral.md)
 - [Guia do usuario](./guia-do-usuario.md)
 - [Guia do desenvolvedor](./guia-do-desenvolvedor.md)
+- [Configuração de ambiente passo a passo](./configuracao-de-ambiente.md)
 
 ## Referencias Tecnicas
 
@@ -27,12 +28,12 @@
 
 ```mermaid
 flowchart TD
-  A[Operacao PASCOM] --> B[Painel admin]
+  A[Operação Virtus PlayCast] --> B[Painel admin]
   B --> C[Patrocinadores]
   B --> D[Overlays]
   C --> E[Telao NORMAL e MASTER]
   E --> F[Metricas e relatorios publicos]
-  D --> G[Links /shared para transmissao]
+  D --> G[Links /{slug}/shared para transmissao]
 ```
 
 ## Convencao

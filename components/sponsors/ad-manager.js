@@ -1,16 +1,24 @@
-﻿'use client'
+﻿"use client";
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
-import { Edit2, ExternalLink, Search, Trash2 } from 'lucide-react'
-import { toast } from 'sonner'
-import { useStore } from '@/lib/store/store'
-import { deleteUploadedMedia, uploadMedia } from '@/services/supabase/upload'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import LoadingState from '@/components/shared/loading-state'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Switch } from '@/components/ui/switch'
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { Edit2, ExternalLink, Search, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { useStore } from "@/lib/store/store";
+import { deleteUploadedMedia, uploadMedia } from "@/services/supabase/upload";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import LoadingState from "@/components/shared/loading-state";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +28,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -28,106 +36,144 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import PaginationControls from '@/components/shared/pagination-controls'
-import { MediaPreview, SponsorForm, TypeBadge } from '@/components/sponsors/ad-manager-parts'
-import { AdManagerEmptyState, AdManagerToolbar } from '@/components/sponsors/ad-manager-toolbar'
-import { validatePublicVideoSource } from '@/lib/utils/video-source'
+} from "@/components/ui/table";
+import PaginationControls from "@/components/shared/pagination-controls";
+import {
+  MediaPreview,
+  SponsorForm,
+  TypeBadge,
+} from "@/components/sponsors/ad-manager-parts";
+import {
+  AdManagerEmptyState,
+  AdManagerToolbar,
+} from "@/components/sponsors/ad-manager-toolbar";
+import { validatePublicVideoSource } from "@/lib/utils/video-source";
 
-const ADMIN_PAGE_SIZE = 10
+const ADMIN_PAGE_SIZE = 10;
 
 function createEmptyAd(defaultDurations) {
   return {
-    name: '',
-    type: 'NORMAL',
-    src: '',
+    name: "",
+    type: "NORMAL",
+    src: "",
     duration: defaultDurations.NORMAL,
-    mediaType: 'image',
-    sourceType: 'link',
-    websiteUrl: '',
-  }
+    mediaType: "image",
+    sourceType: "link",
+    websiteUrl: "",
+  };
 }
 
 function formatDuration(seconds) {
-  const total = Math.max(0, Math.floor(Number(seconds) || 0))
-  const minutes = Math.floor(total / 60)
-  const rest = total % 60
-  return minutes > 0 ? `${minutes}m ${rest}s` : `${rest}s`
+  const total = Math.max(0, Math.floor(Number(seconds) || 0));
+  const minutes = Math.floor(total / 60);
+  const rest = total % 60;
+  return minutes > 0 ? `${minutes}m ${rest}s` : `${rest}s`;
 }
 
 function formatDateTime(value) {
-  if (!value) return 'Nunca exibido'
-  return new Date(value).toLocaleString('pt-BR')
+  if (!value) return "Nunca exibido";
+  return new Date(value).toLocaleString("pt-BR");
 }
 
-export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 } }) {
-  const { ads, createAd, updateAd, deleteAd, error, isLoaded, sponsorSettings, updateSponsorSettings } = useStore()
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [editingAd, setEditingAd] = useState(null)
-  const [newAd, setNewAd] = useState(() => createEmptyAd(defaultDurations))
-  const [searchTerm, setSearchTerm] = useState('')
-  const [adPendingDelete, setAdPendingDelete] = useState(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [savingAd, setSavingAd] = useState(false)
-  const [uploadingMedia, setUploadingMedia] = useState(false)
-
+export default function AdManager({
+  defaultDurations = { NORMAL: 10, MASTER: 15 },
+  churchSlug = "",
+}) {
+  const {
+    ads,
+    createAd,
+    updateAd,
+    deleteAd,
+    error,
+    isLoaded,
+    sponsorSettings,
+    updateSponsorSettings,
+  } = useStore();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingAd, setEditingAd] = useState(null);
+  const [newAd, setNewAd] = useState(() => createEmptyAd(defaultDurations));
+  const [searchTerm, setSearchTerm] = useState("");
+  const [adPendingDelete, setAdPendingDelete] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [savingAd, setSavingAd] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
   const orderedAds = useMemo(
     () =>
       [...ads].sort((a, b) => {
-        if (a.active !== b.active) return a.active ? -1 : 1
-        if (a.type === 'MASTER' && b.type !== 'MASTER') return -1
-        if (a.type !== 'MASTER' && b.type === 'MASTER') return 1
-        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0)
+        if (a.active !== b.active) return a.active ? -1 : 1;
+        if (a.type === "MASTER" && b.type !== "MASTER") return -1;
+        if (a.type !== "MASTER" && b.type === "MASTER") return 1;
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
       }),
-    [ads]
-  )
+    [ads],
+  );
 
   const filteredAds = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase()
-    if (!term) return orderedAds
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return orderedAds;
 
     return orderedAds.filter((ad) =>
       [ad.name, ad.type, ad.websiteUrl]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(term))
-    )
-  }, [orderedAds, searchTerm])
+        .some((value) => String(value).toLowerCase().includes(term)),
+    );
+  }, [orderedAds, searchTerm]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredAds.length / ADMIN_PAGE_SIZE))
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredAds.length / ADMIN_PAGE_SIZE),
+  );
   const paginatedAds = useMemo(() => {
-    const start = (currentPage - 1) * ADMIN_PAGE_SIZE
-    return filteredAds.slice(start, start + ADMIN_PAGE_SIZE)
-  }, [currentPage, filteredAds])
-  const activeSponsorCounts = useMemo(() => ({
-    NORMAL: ads.filter((ad) => ad.active && ad.type === 'NORMAL').length,
-    MASTER: ads.filter((ad) => ad.active && ad.type === 'MASTER').length,
-  }), [ads])
+    const start = (currentPage - 1) * ADMIN_PAGE_SIZE;
+    return filteredAds.slice(start, start + ADMIN_PAGE_SIZE);
+  }, [currentPage, filteredAds]);
+  const activeSponsorCounts = useMemo(
+    () => ({
+      NORMAL: ads.filter((ad) => ad.active && ad.type === "NORMAL").length,
+      MASTER: ads.filter((ad) => ad.active && ad.type === "MASTER").length,
+    }),
+    [ads],
+  );
+
+  // The store is already scoped by the authenticated church; build public links
+  // from its slug instead of retaining the legacy global public routes.
+  const publicTelaoPath = churchSlug ? `/${churchSlug}/ads-telao` : "";
+  const getReportPath = useCallback(
+    (sponsorId) =>
+      churchSlug ? `/${churchSlug}/anunciantes/${sponsorId}` : "",
+    [churchSlug],
+  );
 
   useEffect(() => {
-    setCurrentPage(1)
-  }, [searchTerm])
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
-      setCurrentPage(totalPages)
+      setCurrentPage(totalPages);
     }
-  }, [currentPage, totalPages])
+  }, [currentPage, totalPages]);
 
   useEffect(() => {
-    if (error) toast.error(error)
-  }, [error])
+    if (error) toast.error(error);
+  }, [error]);
 
   useEffect(() => {
-    if (!isLoaded || !sponsorSettings.metricsEnabled) return
+    if (!isLoaded || !sponsorSettings.metricsEnabled) return;
 
     const nextPaused = {
-      NORMAL: activeSponsorCounts.NORMAL === 0 || Boolean(sponsorSettings.metricsPaused?.NORMAL),
-      MASTER: activeSponsorCounts.MASTER === 0 || Boolean(sponsorSettings.metricsPaused?.MASTER),
-    }
-    const nextEnabled = activeSponsorCounts.NORMAL > 0 || activeSponsorCounts.MASTER > 0
-      ? !(nextPaused.NORMAL && nextPaused.MASTER)
-      : false
+      NORMAL:
+        activeSponsorCounts.NORMAL === 0 ||
+        Boolean(sponsorSettings.metricsPaused?.NORMAL),
+      MASTER:
+        activeSponsorCounts.MASTER === 0 ||
+        Boolean(sponsorSettings.metricsPaused?.MASTER),
+    };
+    const nextEnabled =
+      activeSponsorCounts.NORMAL > 0 || activeSponsorCounts.MASTER > 0
+        ? !(nextPaused.NORMAL && nextPaused.MASTER)
+        : false;
 
     if (
       nextEnabled !== sponsorSettings.metricsEnabled ||
@@ -138,207 +184,278 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
         metricsEnabled: nextEnabled,
         metricsPaused: nextPaused,
       }).catch((requestError) => {
-        toast.error(requestError instanceof Error ? requestError.message : 'Erro ao atualizar contador')
-      })
+        toast.error(
+          requestError instanceof Error
+            ? requestError.message
+            : "Erro ao atualizar contador",
+        );
+      });
     }
-  }, [activeSponsorCounts.MASTER, activeSponsorCounts.NORMAL, isLoaded, sponsorSettings.metricsEnabled, sponsorSettings.metricsPaused, updateSponsorSettings])
+  }, [
+    activeSponsorCounts.MASTER,
+    activeSponsorCounts.NORMAL,
+    isLoaded,
+    sponsorSettings.metricsEnabled,
+    sponsorSettings.metricsPaused,
+    updateSponsorSettings,
+  ]);
 
   const getTypeDuration = useCallback(
-    (type) => (type === 'MASTER' ? defaultDurations.MASTER : defaultDurations.NORMAL),
-    [defaultDurations.MASTER, defaultDurations.NORMAL]
-  )
+    (type) =>
+      type === "MASTER" ? defaultDurations.MASTER : defaultDurations.NORMAL,
+    [defaultDurations.MASTER, defaultDurations.NORMAL],
+  );
 
   const readUpload = useCallback(async (file, setter) => {
-    if (!file) return
+    if (!file) return;
 
     try {
-      const url = await uploadMedia(file, 'sponsors')
-      const uploadedMediaType = file.type?.startsWith('video/') ? 'video' : 'image'
+      const url = await uploadMedia(file, "sponsors");
+      const uploadedMediaType = file.type?.startsWith("video/")
+        ? "video"
+        : "image";
       setter((prev) => ({
         ...prev,
         src: url,
-        sourceType: 'upload',
+        sourceType: "upload",
         mediaType: uploadedMediaType,
-      }))
-      toast.success(uploadedMediaType === 'video' ? 'Vídeo enviado' : 'Imagem enviada')
+      }));
+      toast.success(
+        uploadedMediaType === "video" ? "Vídeo enviado" : "Imagem enviada",
+      );
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao enviar arquivo')
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao enviar arquivo",
+      );
     }
-  }, [])
+  }, []);
 
-  const normalizeAd = useCallback((ad) => ({
-    ...ad,
-    mediaType: ad.mediaType === 'video' ? 'video' : 'image',
-    duration: Math.min(
-      Math.max(3, Number(getTypeDuration(ad.type)) || 3),
-      Math.max(3, Number(ad.duration) || 10)
-    ),
-  }), [getTypeDuration])
+  const normalizeAd = useCallback(
+    (ad) => ({
+      ...ad,
+      mediaType: ad.mediaType === "video" ? "video" : "image",
+      duration: Math.min(
+        Math.max(3, Number(getTypeDuration(ad.type)) || 3),
+        Math.max(3, Number(ad.duration) || 10),
+      ),
+    }),
+    [getTypeDuration],
+  );
 
-  const updateMetricsEnabled = useCallback(async (checked) => {
-    if (checked && activeSponsorCounts.NORMAL === 0 && activeSponsorCounts.MASTER === 0) {
-      throw new Error('Ative pelo menos um patrocinador NORMAL ou MASTER antes de ligar o contador')
-    }
+  const updateMetricsEnabled = useCallback(
+    async (checked) => {
+      if (
+        checked &&
+        activeSponsorCounts.NORMAL === 0 &&
+        activeSponsorCounts.MASTER === 0
+      ) {
+        throw new Error(
+          "Ative pelo menos um patrocinador NORMAL ou MASTER antes de ligar o contador",
+        );
+      }
 
-    await updateSponsorSettings({
-      metricsEnabled: checked,
-      metricsPaused: checked
-        ? {
-          NORMAL: activeSponsorCounts.NORMAL === 0,
-          MASTER: activeSponsorCounts.MASTER === 0,
-        }
-        : sponsorSettings.metricsPaused,
-    })
-  }, [activeSponsorCounts.MASTER, activeSponsorCounts.NORMAL, sponsorSettings.metricsPaused, updateSponsorSettings])
+      await updateSponsorSettings({
+        metricsEnabled: checked,
+        metricsPaused: checked
+          ? {
+              NORMAL: activeSponsorCounts.NORMAL === 0,
+              MASTER: activeSponsorCounts.MASTER === 0,
+            }
+          : sponsorSettings.metricsPaused,
+      });
+    },
+    [
+      activeSponsorCounts.MASTER,
+      activeSponsorCounts.NORMAL,
+      sponsorSettings.metricsPaused,
+      updateSponsorSettings,
+    ],
+  );
 
-  const updateMetricsPause = useCallback(async (kind, paused) => {
-    if (!paused && activeSponsorCounts[kind] === 0) {
-      throw new Error(`Nao ha patrocinador ${kind} ativo para contar`)
-    }
+  const updateMetricsPause = useCallback(
+    async (kind, paused) => {
+      if (!paused && activeSponsorCounts[kind] === 0) {
+        throw new Error(`Nao ha patrocinador ${kind} ativo para contar`);
+      }
 
-    const nextPaused = {
-      NORMAL: activeSponsorCounts.NORMAL === 0 || Boolean(sponsorSettings.metricsPaused?.NORMAL),
-      MASTER: activeSponsorCounts.MASTER === 0 || Boolean(sponsorSettings.metricsPaused?.MASTER),
-      [kind]: paused,
-    }
+      const nextPaused = {
+        NORMAL:
+          activeSponsorCounts.NORMAL === 0 ||
+          Boolean(sponsorSettings.metricsPaused?.NORMAL),
+        MASTER:
+          activeSponsorCounts.MASTER === 0 ||
+          Boolean(sponsorSettings.metricsPaused?.MASTER),
+        [kind]: paused,
+      };
 
-    await updateSponsorSettings({
-      metricsEnabled: (activeSponsorCounts.NORMAL > 0 || activeSponsorCounts.MASTER > 0) && !(nextPaused.NORMAL && nextPaused.MASTER),
-      metricsPaused: nextPaused,
-    })
-  }, [activeSponsorCounts, sponsorSettings.metricsPaused, updateSponsorSettings])
+      await updateSponsorSettings({
+        metricsEnabled:
+          (activeSponsorCounts.NORMAL > 0 || activeSponsorCounts.MASTER > 0) &&
+          !(nextPaused.NORMAL && nextPaused.MASTER),
+        metricsPaused: nextPaused,
+      });
+    },
+    [activeSponsorCounts, sponsorSettings.metricsPaused, updateSponsorSettings],
+  );
 
   const handleCreateAd = async () => {
-    const ad = normalizeAd(newAd)
+    const ad = normalizeAd(newAd);
 
     if (!ad.name.trim()) {
-      toast.error('Digite um nome para o patrocínio')
-      return
+      toast.error("Digite um nome para o patrocínio");
+      return;
     }
     if (!ad.src.trim()) {
-      toast.error('Adicione uma imagem, vídeo ou link')
-      return
+      toast.error("Adicione uma imagem, vídeo ou link");
+      return;
     }
 
     if (uploadingMedia) {
-      toast.error('Aguarde o upload terminar antes de salvar')
-      return
+      toast.error("Aguarde o upload terminar antes de salvar");
+      return;
     }
 
-    setSavingAd(true)
+    setSavingAd(true);
     try {
-      if (ad.mediaType === 'video') await validatePublicVideoSource(ad.src)
-      await createAd(ad)
-      toast.success(`Patrocínio "${ad.name}" criado`)
-      setDialogOpen(false)
-      setNewAd(createEmptyAd(defaultDurations))
+      if (ad.mediaType === "video") await validatePublicVideoSource(ad.src);
+      await createAd(ad);
+      toast.success(`Patrocínio "${ad.name}" criado`);
+      setDialogOpen(false);
+      setNewAd(createEmptyAd(defaultDurations));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao criar patrocínio')
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao criar patrocínio",
+      );
     } finally {
-      setSavingAd(false)
+      setSavingAd(false);
     }
-  }
+  };
 
   const handleEditAd = async () => {
-    if (!editingAd) return
-    const ad = normalizeAd(editingAd)
+    if (!editingAd) return;
+    const ad = normalizeAd(editingAd);
 
     if (!ad.name.trim()) {
-      toast.error('Digite um nome para o patrocínio')
-      return
+      toast.error("Digite um nome para o patrocínio");
+      return;
     }
     if (!ad.src.trim()) {
-      toast.error('Adicione uma imagem, vídeo ou link')
-      return
+      toast.error("Adicione uma imagem, vídeo ou link");
+      return;
     }
 
     if (uploadingMedia) {
-      toast.error('Aguarde o upload terminar antes de salvar')
-      return
+      toast.error("Aguarde o upload terminar antes de salvar");
+      return;
     }
 
-    setSavingAd(true)
+    setSavingAd(true);
     try {
-      if (ad.mediaType === 'video') await validatePublicVideoSource(ad.src)
-      const previousMediaUrl = ads.find((item) => item.id === editingAd.id)?.src || ''
-      const updatedAd = await updateAd(editingAd.id, ad)
-      if (!updatedAd) throw new Error('O banco não retornou o patrocínio atualizado')
+      if (ad.mediaType === "video") await validatePublicVideoSource(ad.src);
+      const previousMediaUrl =
+        ads.find((item) => item.id === editingAd.id)?.src || "";
+      const updatedAd = await updateAd(editingAd.id, ad);
+      if (!updatedAd)
+        throw new Error("O banco nao retornou o patrocinio atualizado");
       if (previousMediaUrl && previousMediaUrl !== updatedAd.src) {
         try {
-          await deleteUploadedMedia(previousMediaUrl)
+          await deleteUploadedMedia(previousMediaUrl);
         } catch {
-          toast.warning('Patrocínio atualizado, mas o arquivo antigo não pôde ser excluído do armazenamento')
+          toast.warning(
+            "Patrocinio atualizado, mas o arquivo antigo nao pode ser excluido do armazenamento",
+          );
         }
       }
-      toast.success('Patrocínio atualizado')
-      setEditDialogOpen(false)
-      setEditingAd(null)
+      toast.success("Patrocinio atualizado");
+      setEditDialogOpen(false);
+      setEditingAd(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao atualizar patrocínio')
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao atualizar patrocinio",
+      );
     } finally {
-      setSavingAd(false)
+      setSavingAd(false);
     }
-  }
+  };
 
   const handleDeleteAd = async () => {
-    if (!adPendingDelete) return
+    if (!adPendingDelete) return;
 
     try {
-      const result = await deleteAd(adPendingDelete.id)
+      const result = await deleteAd(adPendingDelete.id);
       if (result?.storageErrors?.length) {
-        toast.warning(`Patrocínio "${adPendingDelete.name}" excluído, mas um arquivo não pôde ser removido`)
+        toast.warning(
+          `Patrocinio "${adPendingDelete.name}" excluido, mas um arquivo nao pode ser removido`,
+        );
       } else {
-        toast.success(`Patrocínio "${adPendingDelete.name}" excluído`)
+        toast.success(`Patrocinio "${adPendingDelete.name}" excluido`);
       }
-      setAdPendingDelete(null)
+      setAdPendingDelete(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao excluir patrocínio')
+      toast.error(
+        error instanceof Error ? error.message : "Erro ao excluir patrocio",
+      );
     }
-  }
+  };
 
   const copyPublicUrl = useCallback((path) => {
-    navigator.clipboard.writeText(`${window.location.origin}${path}`)
-    toast.success(`URL ${path} copiada`)
-  }, [])
+    navigator.clipboard.writeText(`${window.location.origin}${path}`);
+    toast.success(`URL ${path} copiada`);
+  }, []);
 
   if (!isLoaded) {
-    return <LoadingState label="Carregando patrocínios..." />
+    return <LoadingState label="Carregando patrocinios..." />;
   }
 
   return (
     <div className="space-y-5">
       <AdManagerToolbar
         onCopyPublicUrl={copyPublicUrl}
+        publicTelaoPath={publicTelaoPath}
         metricsEnabled={sponsorSettings.metricsEnabled}
         metricsPaused={sponsorSettings.metricsPaused}
         activeCounts={activeSponsorCounts}
         onMetricsToggle={async (checked) => {
           try {
-            await updateMetricsEnabled(checked)
-            toast.success(checked ? 'Contador do telão ativado' : 'Contador do telão desativado')
+            await updateMetricsEnabled(checked);
+            toast.success(
+              checked
+                ? "Contador do telao ativado"
+                : "Contador do telao desativado",
+            );
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Erro ao salvar configuração')
+            toast.error(
+              error instanceof Error
+                ? error.message
+                : "Erro ao salvar configuracao",
+            );
           }
         }}
         onMetricsPauseToggle={async (kind, paused) => {
           try {
-            await updateMetricsPause(kind, paused)
-            toast.success(paused ? `Contador ${kind} pausado` : `Contador ${kind} retomado`)
+            await updateMetricsPause(kind, paused);
+            toast.success(
+              paused ? `Contador ${kind} pausado` : `Contador ${kind} retomado`,
+            );
           } catch (error) {
-            toast.error(error instanceof Error ? error.message : 'Erro ao salvar configuração')
+            toast.error(
+              error instanceof Error
+                ? error.message
+                : "Erro ao salvar configuracao",
+            );
           }
         }}
         onOpenCreateDialog={() => {
-          setNewAd(createEmptyAd(defaultDurations))
-          setDialogOpen(true)
+          setNewAd(createEmptyAd(defaultDurations));
+          setDialogOpen(true);
         }}
       />
 
       <Dialog
         open={dialogOpen}
         onOpenChange={(open) => {
-          setDialogOpen(open)
-          if (open) setNewAd(createEmptyAd(defaultDurations))
+          setDialogOpen(open);
+          if (open) setNewAd(createEmptyAd(defaultDurations));
         }}
       >
         <DialogTrigger asChild>
@@ -346,16 +463,33 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
         </DialogTrigger>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Novo patrocínio</DialogTitle>
+            <DialogTitle>Novo patrocnio</DialogTitle>
             <DialogDescription>
-              O tipo normal aparece em <code>/telao</code>. O tipo master aparece em <code>/telao-master</code>.
+              O patrocínio aparecerá em{" "}
+              <code>{publicTelaoPath || "/{slug}/ads-telao"}</code> quando
+              estiver ativo.
             </DialogDescription>
           </DialogHeader>
-          <SponsorForm ad={newAd} setAd={setNewAd} getTypeDuration={getTypeDuration} onUpload={readUpload} onUploadStateChange={setUploadingMedia} />
+          <SponsorForm
+            ad={newAd}
+            setAd={setNewAd}
+            getTypeDuration={getTypeDuration}
+            onUpload={readUpload}
+            onUploadStateChange={setUploadingMedia}
+          />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={savingAd || uploadingMedia}>Cancelar</Button>
-            <Button onClick={handleCreateAd} disabled={savingAd || uploadingMedia}>
-              {savingAd ? 'Salvando...' : 'Criar'}
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={savingAd || uploadingMedia}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateAd}
+              disabled={savingAd || uploadingMedia}
+            >
+              {savingAd ? "Salvando..." : "Criar"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -363,9 +497,11 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
 
       <div className="flex flex-col gap-3 border-b border-border/70 pb-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-foreground">Lista de patrocinadores</h3>
+          <h3 className="text-sm font-semibold text-foreground">
+            Lista de patrocinadores
+          </h3>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {filteredAds.length} de {orderedAds.length} patrocínio(s)
+            {filteredAds.length} de {orderedAds.length} patrocinio(s)
           </p>
         </div>
         <div className="relative w-full sm:max-w-sm">
@@ -384,7 +520,7 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
         <AdManagerEmptyState
           orderedAdsLength={orderedAds.length}
           filteredAdsLength={filteredAds.length}
-          onClearSearch={() => setSearchTerm('')}
+          onClearSearch={() => setSearchTerm("")}
         />
       ) : (
         <>
@@ -392,33 +528,43 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[110px]">Prévia</TableHead>
+                  <TableHead className="w-[110px]">Prvvia</TableHead>
                   <TableHead>Patrocinador</TableHead>
                   <TableHead className="w-[120px]">Rota</TableHead>
-                  <TableHead className="w-[130px]">Última exibição</TableHead>
+                  <TableHead className="w-[130px]">ltima exibio</TableHead>
                   <TableHead className="w-[110px]">Tempo no ar</TableHead>
                   <TableHead className="w-[92px] text-center">Ativo</TableHead>
-                  <TableHead className="w-[220px] text-right">Ações</TableHead>
+                  <TableHead className="w-[220px] text-right">Thises</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginatedAds.map((ad) => (
-                  <TableRow key={ad.id} className={!ad.active ? 'opacity-65' : ''}>
+                  <TableRow
+                    key={ad.id}
+                    className={!ad.active ? "opacity-65" : ""}
+                  >
                     <TableCell>
                       <MediaPreview ad={ad} compact />
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1">
-                        <div className="font-medium text-foreground">{ad.name}</div>
+                        <div className="font-medium text-foreground">
+                          {ad.name}
+                        </div>
                         <TypeBadge ad={ad} />
                         <div className="text-xs text-muted-foreground">
-                          {formatDuration(ad.duration)} por rodada · {ad.views || 0} exibições
+                          {formatDuration(ad.duration)} por rodada ·{" "}
+                          {ad.views || 0} exibiies
                         </div>
-                        {ad.websiteUrl ? <div className="truncate text-xs text-muted-foreground">{ad.websiteUrl}</div> : null}
+                        {ad.websiteUrl ? (
+                          <div className="truncate text-xs text-muted-foreground">
+                            {ad.websiteUrl}
+                          </div>
+                        ) : null}
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {ad.type === 'MASTER' ? '/telao-master' : '/telao'}
+                      {publicTelaoPath || "/{slug}/ads-telao"}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {formatDateTime(ad.lastDisplayedAt)}
@@ -432,10 +578,18 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
                           checked={ad.active}
                           onCheckedChange={async () => {
                             try {
-                              await updateAd(ad.id, { active: !ad.active })
-                              toast.success(!ad.active ? 'Patrocinador ativado no telão' : 'Patrocinador removido do telão')
+                              await updateAd(ad.id, { active: !ad.active });
+                              toast.success(
+                                !ad.active
+                                  ? "Patrocinador ativado no telao"
+                                  : "Patrocinador removido do telao",
+                              );
                             } catch (error) {
-                              toast.error(error instanceof Error ? error.message : 'Erro ao atualizar patrocinador')
+                              toast.error(
+                                error instanceof Error
+                                  ? error.message
+                                  : "Erro ao atualizar patrocinador",
+                              );
                             }
                           }}
                         />
@@ -447,17 +601,21 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            setEditingAd(ad)
-                            setEditDialogOpen(true)
+                            setEditingAd(ad);
+                            setEditDialogOpen(true);
                           }}
                         >
                           <Edit2 className="mr-2 h-4 w-4" />
                           Editar
                         </Button>
                         <Button asChild variant="outline" size="sm">
-                          <Link href={`/anunciantes/${ad.id}`} target="_blank">
+                          <Link
+                            href={getReportPath(ad.id) || "#"}
+                            target="_blank"
+                            aria-disabled={!churchSlug}
+                          >
                             <ExternalLink className="mr-2 h-4 w-4" />
-                            Relatório
+                            Relatrio
                           </Link>
                         </Button>
                         <Button
@@ -465,7 +623,7 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
                           size="icon"
                           className="text-destructive"
                           onClick={() => setAdPendingDelete(ad)}
-                          aria-label={`Excluir patrocínio ${ad.name}`}
+                          aria-label={`Excluir patrocnio ${ad.name}`}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -479,52 +637,59 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
 
           <div className="space-y-3 lg:hidden">
             {paginatedAds.map((ad) => (
-              <div key={ad.id} className={`border border-border/80 p-3 ${!ad.active ? 'opacity-65' : ''}`}>
+              <div
+                key={ad.id}
+                className={`border border-border/80 p-3 ${!ad.active ? "opacity-65" : ""}`}
+              >
                 <div className="flex gap-3">
                   <MediaPreview ad={ad} compact />
                   <div className="min-w-0 flex-1 space-y-2">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="truncate font-medium text-foreground">{ad.name}</div>
+                        <div className="truncate font-medium text-foreground">
+                          {ad.name}
+                        </div>
                         <div className="mt-1 text-xs text-muted-foreground">
-                          {formatDuration(ad.duration)} por rodada · {ad.views || 0} exibições
+                          {formatDuration(ad.duration)} por rodada ·{" "}
+                          {ad.views || 0} exibiies
                         </div>
                       </div>
-                      <Switch
-                        checked={ad.active}
-                        onCheckedChange={async () => {
-                          try {
-                            await updateAd(ad.id, { active: !ad.active })
-                            toast.success(!ad.active ? 'Patrocinador ativado no telão' : 'Patrocinador removido do telão')
-                          } catch (error) {
-                            toast.error(error instanceof Error ? error.message : 'Erro ao atualizar patrocinador')
-                          }
-                        }}
-                      />
-                    </div>
-                    <TypeBadge ad={ad} />
-                    <div className="space-y-1 text-xs text-muted-foreground">
-                      <div>Rota: {ad.type === 'MASTER' ? '/telao-master' : '/telao'}</div>
-                      <div>Última exibição: {formatDateTime(ad.lastDisplayedAt)}</div>
-                      <div>Tempo no ar: {formatDuration(ad.totalSeconds)}</div>
-                      {ad.websiteUrl ? <div className="truncate">{ad.websiteUrl}</div> : null}
+                      <TypeBadge ad={ad} />
+                      <div className="space-y-1 text-xs text-muted-foreground">
+                        <div>
+                          Rota: {publicTelaoPath || "/{slug}/ads-telao"}
+                        </div>
+                        <div>
+                          Ultima exibio: {formatDateTime(ad.lastDisplayedAt)}
+                        </div>
+                        <div>
+                          Tempo no ar: {formatDuration(ad.totalSeconds)}
+                        </div>
+                        {ad.websiteUrl ? (
+                          <div className="truncate">{ad.websiteUrl}</div>
+                        ) : null}
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-2 pt-1">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          setEditingAd(ad)
-                          setEditDialogOpen(true)
+                          setEditingAd(ad);
+                          setEditDialogOpen(true);
                         }}
                       >
                         <Edit2 className="mr-2 h-4 w-4" />
                         Editar
                       </Button>
                       <Button asChild variant="outline" size="sm">
-                        <Link href={`/anunciantes/${ad.id}`} target="_blank">
+                        <Link
+                          href={getReportPath(ad.id) || "#"}
+                          target="_blank"
+                          aria-disabled={!churchSlug}
+                        >
                           <ExternalLink className="mr-2 h-4 w-4" />
-                          Relatório
+                          Relatrio
                         </Link>
                       </Button>
                       <Button
@@ -532,7 +697,7 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
                         size="icon"
                         className="text-destructive"
                         onClick={() => setAdPendingDelete(ad)}
-                        aria-label={`Excluir patrocínio ${ad.name}`}
+                        aria-label={`Excluir patrocnio ${ad.name}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -546,46 +711,73 @@ export default function AdManager({ defaultDurations = { NORMAL: 10, MASTER: 15 
             currentPage={currentPage}
             totalPages={totalPages}
             totalItems={filteredAds.length}
-            itemLabel="patrocínios"
+            itemLabel="patrcios"
             onPageChange={setCurrentPage}
           />
         </>
       )}
 
+      {/* Keep destructive actions and form state inside controlled dialogs. */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Editar patrocínio</DialogTitle>
-            <DialogDescription>Atualize mídia, link, tipo e tempo de exibição.</DialogDescription>
+            <DialogDescription>
+              Atualize mídia, link, tipo e tempo de exibição.
+            </DialogDescription>
           </DialogHeader>
-          {editingAd ? <SponsorForm ad={editingAd} setAd={setEditingAd} getTypeDuration={getTypeDuration} onUpload={readUpload} onUploadStateChange={setUploadingMedia} allowMediaRemoval /> : null}
+          {editingAd ? (
+            <SponsorForm
+              ad={editingAd}
+              setAd={setEditingAd}
+              getTypeDuration={getTypeDuration}
+              onUpload={readUpload}
+              onUploadStateChange={setUploadingMedia}
+              allowMediaRemoval
+            />
+          ) : null}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)} disabled={savingAd || uploadingMedia}>Cancelar</Button>
-            <Button onClick={handleEditAd} disabled={savingAd || uploadingMedia}>
-              {savingAd ? 'Salvando...' : 'Salvar'}
+            <Button
+              variant="outline"
+              onClick={() => setEditDialogOpen(false)}
+              disabled={savingAd || uploadingMedia}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleEditAd}
+              disabled={savingAd || uploadingMedia}
+            >
+              {savingAd ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={Boolean(adPendingDelete)} onOpenChange={(open) => !open && setAdPendingDelete(null)}>
+      <AlertDialog
+        open={Boolean(adPendingDelete)}
+        onOpenChange={(open) => !open && setAdPendingDelete(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir patrocínio?</AlertDialogTitle>
             <AlertDialogDescription>
               {adPendingDelete
                 ? `O patrocínio "${adPendingDelete.name}" será removido do painel e do telão.`
-                : 'Confirme a exclusão do patrocínio.'}
+                : "Confirme a exclusão do patrocínio."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteAd} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={handleDeleteAd}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

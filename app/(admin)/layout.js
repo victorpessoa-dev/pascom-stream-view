@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import { Toaster } from 'sonner'
-import { StoreProvider } from '@/lib/store/store'
+import { Toaster } from "sonner";
+import { StoreProvider } from "@/lib/store/store";
 
 export default function AdminLayout({ children }) {
   return (
@@ -10,17 +10,18 @@ export default function AdminLayout({ children }) {
       <Toaster
         closeButton
         richColors
-        theme="dark"
+        theme="light"
         position="bottom-right"
         duration={3600}
         toastOptions={{
           classNames: {
-            toast: 'border border-border bg-card text-card-foreground shadow-xl',
-            title: 'font-medium',
-            description: 'text-muted-foreground',
+            toast:
+              "border border-border bg-card text-card-foreground shadow-xl",
+            title: "font-medium",
+            description: "text-muted-foreground",
           },
         }}
       />
     </StoreProvider>
-  )
+  );
 }
