@@ -45,8 +45,8 @@ describe("settings services", () => {
     await expect(
       getTelaoDefaultDurations(supabase, "church-1"),
     ).resolves.toEqual({
-      NORMAL: 22,
-      MASTER: 22,
+      IMAGE: 22,
+      VIDEO: 22,
     });
   });
 
@@ -55,13 +55,13 @@ describe("settings services", () => {
     const saved = await saveAdminSettings(
       supabase,
       {
-        telao: { defaultDurationNormal: 9 },
+        telao: { defaultDurationImage: 9 },
       },
       "church-1",
     );
 
-    expect(saved.telao.defaultDurationNormal).toBe(9);
-    expect(saved.telao.defaultDurationMaster).toBe(15);
+    expect(saved.telao.defaultDurationImage).toBe(9);
+    expect(saved.telao.defaultDurationVideo).toBe(15);
     expect(supabase.calls[0]).toMatchObject({
       key: "admin_settings",
       value: {
@@ -86,6 +86,12 @@ describe("settings services", () => {
         MASTER: false,
       },
     });
+  });
+
+  it("uses configured durations by media type", () => {
+    expect(
+      mergeSponsorSettings({ mediaDurations: { image: 12, video: 24 } }),
+    ).toMatchObject({ mediaDurations: { image: 12, video: 24 } });
   });
 
   it("uses one shared design and migrates the legacy normal layout", () => {

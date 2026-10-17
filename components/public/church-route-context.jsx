@@ -19,7 +19,7 @@ function useChurchFromSlug() {
   useEffect(() => {
     let cancelled = false;
     if (!slug) return undefined;
-    fetch(`/api/igreja/${encodeURIComponent(slug)}`)
+    fetch(`/api/igreja/${encodeURIComponent(slug)}`, { cache: "no-store" })
       .then(async (response) => {
         const payload = await response.json().catch(() => ({}));
         if (!response.ok)

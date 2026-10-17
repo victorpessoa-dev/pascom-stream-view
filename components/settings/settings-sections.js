@@ -269,43 +269,44 @@ export function TelaoSettingsSection({ settings, updateSettings }) {
       <CardHeader>
         <CardTitle>Comportamento do telão</CardTitle>
         <CardDescription>
-          Durações usadas como padrão ao cadastrar novos patrocínios.
+          Durações aplicadas no telão conforme o tipo de mídia, para NORMAL e
+          MASTER.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-2 rounded-xl border border-border p-4">
             <Label>
-              Duração padrão normal ({settings.telao.defaultDurationNormal}s)
+              Duração de imagem ({settings.telao.defaultDurationImage}s)
             </Label>
             <Slider
-              value={[settings.telao.defaultDurationNormal]}
+              value={[settings.telao.defaultDurationImage]}
               onValueChange={([value]) =>
-                updateSettings("telao", "defaultDurationNormal", value)
+                updateSettings("telao", "defaultDurationImage", value)
               }
               min={3}
               max={60}
               step={1}
             />
             <p className="text-xs text-muted-foreground">
-              Usada como valor inicial ao cadastrar patrocínios do tipo NORMAL.
+              Aplicada a imagens de patrocinadores NORMAL e MASTER.
             </p>
           </div>
           <div className="space-y-2 rounded-xl border border-border p-4">
             <Label>
-              Duração padrão master ({settings.telao.defaultDurationMaster}s)
+              Duração de vídeo ({settings.telao.defaultDurationVideo}s)
             </Label>
             <Slider
-              value={[settings.telao.defaultDurationMaster]}
+              value={[settings.telao.defaultDurationVideo]}
               onValueChange={([value]) =>
-                updateSettings("telao", "defaultDurationMaster", value)
+                updateSettings("telao", "defaultDurationVideo", value)
               }
               min={3}
               max={60}
               step={1}
             />
             <p className="text-xs text-muted-foreground">
-              Usada como valor inicial ao cadastrar patrocínios do tipo MASTER.
+              Aplicada a vídeos de patrocinadores NORMAL e MASTER.
             </p>
           </div>
         </div>
@@ -609,7 +610,7 @@ export function DataSettingsSection({ onExport, onImport, onClearData }) {
                 accept="application/json,.json"
                 onFileSelect={setPendingImportFile}
                 title="Arraste o backup ou clique para importar"
-                description="Arquivo JSON exportado pelo Virtus PlayCast"
+                description="Arquivo JSON exportado pelo vPlayCast"
               />
             </div>
           </CardContent>

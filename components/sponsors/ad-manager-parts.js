@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StaticMediaFrame from "@/components/shared/static-media-frame";
 import { useMediaBackgroundColor } from "@/components/sponsors/telao-media";
@@ -115,7 +114,6 @@ export function TypeBadge({ ad }) {
 export function SponsorForm({
   ad,
   setAd,
-  getTypeDuration,
   onUpload,
   onUploadStateChange,
   allowMediaRemoval = false,
@@ -123,21 +121,9 @@ export function SponsorForm({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const hasUploadedMedia = ad.sourceType === "upload" && Boolean(ad.src);
-  const isMaster = ad.type === "MASTER";
-  const durationLimit = Math.max(3, Number(getTypeDuration(ad.type)) || 3);
-  const displayedDuration = Math.min(
-    durationLimit,
-    Math.max(3, Number(ad.duration) || 3),
-  );
 
   const handleUpload = async (file) => {
     if (!file) return;
-
-    const isVideo = file.type?.startsWith("video/");
-    if (isVideo && !isMaster) {
-      setUploadError("Upload de vídeo é exclusivo para patrocinadores MASTER.");
-      return;
-    }
 
     setUploadError("");
     setUploading(true);
@@ -188,10 +174,6 @@ export function SponsorForm({
               setAd((prev) => ({
                 ...prev,
                 type: value,
-                duration: getTypeDuration(value),
-                ...(value === "NORMAL" && prev.mediaType === "video"
-                  ? { mediaType: "image", src: "", sourceType: "link" }
-                  : {}),
               }))
             }
           >
@@ -205,21 +187,6 @@ export function SponsorForm({
           </Select>
         </div>
 
-        <div className="space-y-2">
-          <Label>Duração da exibição: {displayedDuration}s</Label>
-          <Slider
-            value={[displayedDuration]}
-            onValueChange={([value]) =>
-              setAd((prev) => ({ ...prev, duration: value }))
-            }
-            min={3}
-            max={durationLimit}
-            step={1}
-          />
-          <p className="text-xs text-muted-foreground">
-            Limite do tipo {ad.type}: {durationLimit}s.
-          </p>
-        </div>
       </TabsContent>
 
       <TabsContent value="media" className="mt-5 space-y-5">
@@ -236,9 +203,7 @@ export function SponsorForm({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="image">Imagem</SelectItem>
-              <SelectItem value="video" disabled={!isMaster}>
-                Vídeo · MASTER
-              </SelectItem>
+              <SelectItem value="video">Vídeo</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -273,23 +238,18 @@ export function SponsorForm({
           <Label>Upload</Label>
           <FileDropzone
             accept={
-              isMaster
-                ? "image/gif,image/jpeg,image/png,image/webp,video/webm,video/mp4"
-                : "image/gif,image/jpeg,image/png,image/webp"
+              "image/gif,image/jpeg,image/png,image/webp,video/webm,video/mp4"
             }
             disabled={uploading}
             onFileSelect={handleUpload}
             title="Arraste a mídia ou clique para enviar"
             description={
-              isMaster
-                ? "Imagens, MP4 ou WebM"
-                : "Imagens GIF, JPG, PNG ou WebP"
+              "Imagens GIF, JPG, PNG, WebP, MP4 ou WebM"
             }
           />
           <p className="text-xs text-muted-foreground">
-            {isMaster
-              ? "MASTER aceita imagens e vídeos MP4/WebM."
-              : "NORMAL aceita somente imagens. Para enviar vídeo, selecione MASTER."}
+            A duração é definida em Configurações &gt; Telão, conforme a mídia
+            for imagem ou vídeo.
           </p>
           {uploadError ? (
             <p className="text-xs font-medium text-destructive">

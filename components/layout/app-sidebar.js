@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -36,27 +35,21 @@ import {
 import { useStore } from "@/lib/store/store";
 import { cn } from "@/lib/utils/cn";
 import ThemeToggle from "@/components/shared/theme-toggle";
-
-const SIDEBAR_STORAGE_KEY = "v-playcast:admin-sidebar-collapsed";
+import { useAdminSidebarState } from "@/components/layout/admin-sidebar-state";
 
 const navItems = [
   { title: "Início", href: "/admin", icon: LayoutDashboard },
   { title: "Overlays", href: "/overlay", icon: Monitor },
   { title: "Patrocínios", href: "/painel-telao", icon: Megaphone },
   {
-    title: "Igreja",
-    href: "/configuracoes?tab=appearance",
-    icon: Church,
-  },
-  {
     title: "Configurações",
-    href: "/configuracoes?tab=telao",
+    href: "/configuracoes?tab=visual",
     icon: Settings,
   },
 ];
 
 export default function AppSidebar({ mobileOpen = false, onMobileClose }) {
-  const [collapsed, setCollapsed] = useState(true);
+  const { collapsed, updateCollapsed } = useAdminSidebarState();
   const pathname = usePathname();
   const router = useRouter();
   const { churchSlug } = useStore();
@@ -71,27 +64,6 @@ export default function AppSidebar({ mobileOpen = false, onMobileClose }) {
         },
       ]
     : [];
-
-  useEffect(() => {
-    const syncCollapsed = () => {
-      if (window.innerWidth < 1280) {
-        setCollapsed(true);
-        return;
-      }
-
-      setCollapsed(localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true");
-    };
-
-    syncCollapsed();
-    window.addEventListener("resize", syncCollapsed);
-    return () => window.removeEventListener("resize", syncCollapsed);
-  }, []);
-
-  const updateCollapsed = (value) => {
-    setCollapsed(value);
-    localStorage.setItem(SIDEBAR_STORAGE_KEY, String(value));
-    window.dispatchEvent(new CustomEvent("v_playcast_sidebar_resize"));
-  };
 
   async function onLogout() {
     try {
@@ -127,28 +99,25 @@ export default function AppSidebar({ mobileOpen = false, onMobileClose }) {
             collapsed && "md:justify-center md:gap-0",
           )}
         >
-          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg p-1">
-            <img
-              src="/brand/virtus-playcast-mark.png"
-              alt=""
-              className="h-full w-full object-contain"
-            />
-          </div>
           <div
             className={cn(
               "flex min-w-0 flex-1 flex-col overflow-hidden whitespace-nowrap opacity-100 transition-[max-width,opacity] duration-200 ease-out md:max-w-40",
               collapsed && "md:max-w-0 md:opacity-0",
             )}
           >
-            <span className="text-sm font-semibold tracking-tight text-sidebar-foreground">
-              Virtus{" "}
-              <span className="text-[11px] font-medium uppercase tracking-wide text-sidebar-muted">
-                PlayCast
-              </span>
+            <span className="font-brand text-sm font-extrabold tracking-tight text-sidebar-foreground">
+              vPlayCast
             </span>
             <span className="mt-1 truncate text-[11px] font-medium text-sidebar-foreground/70">
               Painel administrativo
             </span>
+          </div>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg p-1">
+            <img
+              src="/brand/virtus-playcast-mark.png"
+              alt=""
+              className="h-full w-full object-contain"
+            />
           </div>
         </div>
 
@@ -169,7 +138,7 @@ export default function AppSidebar({ mobileOpen = false, onMobileClose }) {
                   isActive
                     ? "bg-sidebar-primary/90 text-sidebar-primary-foreground shadow-sm before:absolute before:-left-2.5 before:h-5 before:w-0.5 before:rounded-full before:bg-sidebar-primary"
                     : "text-sidebar-foreground/70",
-                  collapsed && "md:justify-center md:px-0",
+                  collapsed && "md:justify-center md:gap-0 md:px-0",
                 )}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -207,7 +176,7 @@ export default function AppSidebar({ mobileOpen = false, onMobileClose }) {
                 target={item.target}
                 className={cn(
                   "flex items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-[padding,background-color,color] duration-300 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                  collapsed && "md:justify-center md:px-0",
+                  collapsed && "md:justify-center md:gap-0 md:px-0",
                 )}
               >
                 <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -260,7 +229,7 @@ export default function AppSidebar({ mobileOpen = false, onMobileClose }) {
             }
             className={cn(
               "hidden w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring xl:flex",
-              collapsed && "justify-center px-0",
+              collapsed && "justify-center gap-0 px-0",
             )}
           >
             {collapsed ? (

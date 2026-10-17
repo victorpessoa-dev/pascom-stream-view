@@ -1,7 +1,7 @@
 export default function manifest() {
   return {
-    name: "Virtus PlayCast",
-    short_name: "Virtus",
+    name: "vPlayCast",
+    short_name: "vPlayCast",
     description: "Transmissão de missas e celebrações religiosas da paróquia",
     start_url: "/",
     scope: "/",

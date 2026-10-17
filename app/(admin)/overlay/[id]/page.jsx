@@ -2,6 +2,11 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 import { useStore } from "@/lib/store/store";
+import {
+  getOverlayAnimationClass,
+  getOverlayElementKey,
+  getOverlayMediaType,
+} from "@/lib/overlays/animations";
 
 const OVERLAY_WIDTH = 1920;
 const OVERLAY_HEIGHT = 1080;
@@ -71,8 +76,8 @@ export default function OverlayPage({ params }) {
       >
         {elements.map((element) => (
           <div
-            key={element.id}
-            className="absolute"
+            key={getOverlayElementKey(element)}
+            className={`absolute ${getOverlayAnimationClass(element.animationType)}`}
             style={{
               left: element.x,
               top: element.y,
@@ -97,12 +102,27 @@ export default function OverlayPage({ params }) {
                     (element.cropBottom || 0),
                 }}
               >
-                {element.type === "image" && element.src ? (
+                {element.type === "image" &&
+                element.src &&
+                getOverlayMediaType(element) === "image" ? (
                   <img
                     src={element.src}
                     alt=""
                     className="h-full w-full object-contain"
                     draggable={false}
+                  />
+                ) : null}
+                {element.type === "image" &&
+                element.src &&
+                getOverlayMediaType(element) === "video" ? (
+                  <video
+                    src={element.src}
+                    className="h-full w-full object-contain"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    disablePictureInPicture
                   />
                 ) : null}
                 {element.type === "text" ? (

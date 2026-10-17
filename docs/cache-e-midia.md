@@ -23,8 +23,8 @@ flowchart TD
 
 O componente de telao mantem uma copia local da ultima playlist por tipo:
 
-- `v-playcast:telao:ads-cache:NORMAL`
-- `v-playcast:telao:ads-cache:MASTER`
+- `vplaycast:telao:ads-cache:NORMAL`
+- `vplaycast:telao:ads-cache:MASTER`
 
 Se a API falhar e houver cache local, o telao continua exibindo a ultima lista conhecida e mostra aviso de cache local.
 
@@ -35,7 +35,7 @@ Quando o contador esta ativo e o POST de logs falha, o player salva os logs em `
 Chave local:
 
 ```text
-v-playcast:telao:log-queue
+vplaycast:telao:log-queue
 ```
 
 ## Atualizacao

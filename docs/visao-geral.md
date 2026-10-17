@@ -4,11 +4,11 @@
 
 ## Objetivo
 
-Explicar a arquitetura atual do Virtus PlayCast e como os domínios principais se conectam.
+Explicar a arquitetura atual do vPlayCast e como os domínios principais se conectam.
 
 ## Descricao
 
-O Virtus PlayCast é uma aplicação Next.js App Router com Supabase para operar patrocinadores, telões e overlays de transmissão. O painel administrativo é protegido por login e permissão de admin; as rotas públicas exibem patrocinadores, relatórios, telão e overlays compartilháveis.
+O vPlayCast é uma aplicação Next.js App Router com Supabase para operar patrocinadores, telões e overlays de transmissão. O painel administrativo é protegido por login e permissão de admin; as rotas públicas exibem patrocinadores, relatórios, telão e overlays compartilháveis.
 
 ## Arquitetura
 

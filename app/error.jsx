@@ -16,8 +16,8 @@ export default function ErrorPage({ error, reset }) {
       <section className="w-full max-w-xl rounded-3xl border border-border bg-card p-7 shadow-xl sm:p-10">
         <div className="rounded-2xl bg-slate-950 p-3 shadow-inner shadow-black/30">
           <img
-            src="/brand/virtus-playcast-white.png"
-            alt="Virtus PlayCast"
+            src="/brand/virtus-playcast-white-mark.png"
+            alt="vPlayCast"
             className="h-10 w-44 object-contain sm:h-12 sm:w-52"
           />
         </div>

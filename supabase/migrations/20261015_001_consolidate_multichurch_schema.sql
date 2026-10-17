@@ -1,4 +1,4 @@
--- Virtus PlayCast: consolidated multi-church baseline and media storage limits.
+-- vPlayCast: consolidated multi-church baseline and media storage limits.
 -- Apply after the existing migrations. This migration is idempotent.
 create extension if not exists "pgcrypto";
 

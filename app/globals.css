@@ -135,6 +135,71 @@
   animation: virtus-logo-float 1.7s ease-in-out infinite;
 }
 
+@keyframes overlay-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes overlay-fade-up {
+  from { opacity: 0; transform: translate3d(0, 28px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes overlay-slide-left {
+  from { opacity: 0; transform: translate3d(-72px, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes overlay-slide-right {
+  from { opacity: 0; transform: translate3d(72px, 0, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes overlay-slide-down {
+  from { opacity: 0; transform: translate3d(0, -72px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+
+@keyframes overlay-zoom {
+  from { opacity: 0; transform: scale(0.88); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes overlay-bounce {
+  0% { opacity: 0; transform: scale(0.72); }
+  60% { opacity: 1; transform: scale(1.06); }
+  80% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+
+@keyframes overlay-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.025); opacity: 0.86; }
+}
+
+.overlay-motion-fade,
+.overlay-motion-fade-up,
+.overlay-motion-slide-left,
+.overlay-motion-slide-right,
+.overlay-motion-slide-down,
+.overlay-motion-zoom,
+.overlay-motion-bounce,
+.overlay-motion-pulse {
+  animation-duration: 420ms;
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.overlay-motion-fade { animation-name: overlay-fade; }
+.overlay-motion-fade-up { animation-name: overlay-fade-up; }
+.overlay-motion-slide-left { animation-name: overlay-slide-left; }
+.overlay-motion-slide-right { animation-name: overlay-slide-right; }
+.overlay-motion-slide-down { animation-name: overlay-slide-down; }
+.overlay-motion-zoom { animation-name: overlay-zoom; }
+.overlay-motion-bounce { animation-name: overlay-bounce; animation-duration: 560ms; }
+.overlay-motion-pulse { animation-name: overlay-pulse; animation-duration: 1.8s; animation-iteration-count: infinite; }
+
 @theme inline {
   --breakpoint-xs: 30rem;
   --breakpoint-desktop: 90rem;
@@ -143,6 +208,7 @@
   --font-sans:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
+  --font-brand: var(--font-vplaycast), "Poppins", sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -228,6 +294,17 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: oklch(0.4 0 0 / 0.5);
+}
+
+[data-slot="dialog-content"],
+[data-slot="alert-dialog-content"] {
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.4 0 0 / 0.24) transparent;
+}
+
+[data-slot="dialog-content"]::-webkit-scrollbar,
+[data-slot="alert-dialog-content"]::-webkit-scrollbar {
+  width: 5px;
 }
 
 /* Smooth transitions */

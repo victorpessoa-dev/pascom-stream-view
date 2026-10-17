@@ -4,7 +4,7 @@
 
 ## Ideia do Projeto
 
-Virtus PlayCast é uma ferramenta operacional para organizar patrocinadores e elementos visuais usados em transmissão. A ideia é ter um painel simples para a equipe cadastrar mídias, controlar o que aparece no telão, acompanhar exibições e disponibilizar transparência pública para patrocinadores e comunidade.
+vPlayCast é uma ferramenta operacional para organizar patrocinadores e elementos visuais usados em transmissão. A ideia é ter um painel simples para a equipe cadastrar mídias, controlar o que aparece no telão, acompanhar exibições e disponibilizar transparência pública para patrocinadores e comunidade.
 
 O sistema nao e uma landing page. Ele e uma aplicacao de operacao: painel administrativo, telao publico, telao master, editor de overlays e relatorios.
 

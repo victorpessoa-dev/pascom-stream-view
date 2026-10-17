@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Database, Globe, Monitor, Palette, UserRound } from "lucide-react";
-import AppShell from "@/components/layout/app-shell";
 import PageContainer from "@/components/layout/page-container";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -43,6 +42,11 @@ import {
 
 export default function ConfiguracoesPage() {
   const [initialTab, setInitialTab] = useState("telao");
+  const [isClientReady, setIsClientReady] = useState(false);
+
+  useEffect(() => {
+    setIsClientReady(true);
+  }, []);
 
   useEffect(() => {
     const requestedTab = new URLSearchParams(window.location.search).get("tab");
@@ -342,7 +346,7 @@ export default function ConfiguracoesPage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `v-playcast-backup-${new Date().toISOString().split("T")[0]}.json`;
+    link.download = `vplaycast-backup-${new Date().toISOString().split("T")[0]}.json`;
     link.click();
     URL.revokeObjectURL(url);
     toast.success("Dados exportados com sucesso");
@@ -516,14 +520,13 @@ export default function ConfiguracoesPage() {
   };
 
   return (
-    <AppShell>
-      <PageContainer size="narrow">
+    <PageContainer size="narrow">
         <SettingsHeader
           onReset={resetSettings}
           onSave={saveSettings}
           hasChanges={hasChanges}
           isSaving={isSaving}
-          isChurchReady={Boolean(churchId)}
+          isChurchReady={isClientReady && Boolean(churchId)}
         />
         {!churchId && (
           <div className="-mt-4 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -616,7 +619,6 @@ export default function ConfiguracoesPage() {
             </TabsContent>
           </SettingsTabs>
         </Tabs>
-      </PageContainer>
-    </AppShell>
+    </PageContainer>
   );
 }

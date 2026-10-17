@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const THEME_KEY = "virtus-playcast:theme";
+const THEME_KEY = "vplaycast:theme";
 
 export default function ThemeToggle({ compact = false }) {
   const [dark, setDark] = useState(false);

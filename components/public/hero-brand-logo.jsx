@@ -5,13 +5,12 @@
  */
 export default function HeroBrandLogo({
   className = "",
-  alt = "Virtus PlayCast",
+  alt = "vPlayCast",
 }) {
   return (
-    <img
-      src="/brand/virtus-playcast-color.png"
-      alt={alt}
-      className={`h-full w-full object-contain ${className}`}
-    />
+    <span className={`flex items-center justify-center gap-4 ${className}`}>
+      <span className="font-brand text-[clamp(2.25rem,7vw,5.25rem)] font-extrabold tracking-tight text-white">vPlayCast</span>
+      <img src="/brand/virtus-playcast-white-mark.png" alt="" className="h-full aspect-square object-contain" />
+    </span>
   );
 }

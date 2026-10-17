@@ -1,4 +1,4 @@
-# Documentação - Virtus PlayCast
+# Documentação - vPlayCast
 
 ## Comece Aqui
 
@@ -28,7 +28,7 @@
 
 ```mermaid
 flowchart TD
-  A[Operação Virtus PlayCast] --> B[Painel admin]
+  A[Operação vPlayCast] --> B[Painel admin]
   B --> C[Patrocinadores]
   B --> D[Overlays]
   C --> E[Telao NORMAL e MASTER]

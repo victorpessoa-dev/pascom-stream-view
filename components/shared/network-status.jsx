@@ -31,7 +31,7 @@ export default function NetworkStatus() {
           Você está sem conexão. Alguns dados podem estar desatualizados.
         </span>
         <Link
-          href="/offline"
+          href="/offline.html"
           className="inline-flex items-center gap-1 font-semibold underline underline-offset-4"
         >
           <Wifi className="h-4 w-4" />

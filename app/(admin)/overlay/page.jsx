@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { Plus, Search } from "lucide-react";
-import AppShell from "@/components/layout/app-shell";
 import PageContainer from "@/components/layout/page-container";
 import CreateOverlayDialog from "@/components/overlays/create-overlay-dialog";
 import OverlayList from "@/components/overlays/overlay-list";
@@ -23,8 +22,7 @@ export default function OverlaysPage() {
   );
 
   return (
-    <AppShell>
-      <PageContainer>
+    <PageContainer>
         <header className="mb-6 flex flex-col gap-4 border-b border-border/70 pb-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Overlays</h1>
@@ -53,7 +51,6 @@ export default function OverlaysPage() {
           open={createDialogOpen}
           onOpenChange={setCreateDialogOpen}
         />
-      </PageContainer>
-    </AppShell>
+    </PageContainer>
   );
 }

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import ThemeToggle from "@/components/shared/theme-toggle";
 
 const fallbackProfile = {
-  parishName: "Virtus PlayCast",
+  parishName: "vPlayCast",
   parishLogoUrl: "/brand/virtus-playcast-mark.png",
 };
 
@@ -61,15 +61,15 @@ export default function PublicNavbar({ church = null, showLogin = true }) {
           href={church?.slug ? `/${church.slug}` : "/"}
           className="flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
+          <span className={`min-w-0 truncate text-base leading-tight sm:text-lg ${profile.parishName === "vPlayCast" ? "font-brand font-extrabold" : "font-semibold"}`}>
+            {profile.parishName}
+          </span>
           <span className="flex h-10 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-card p-1 sm:h-11 sm:w-14">
             <img
               src={profile.parishLogoUrl}
               alt=""
               className="h-full w-full object-contain"
             />
-          </span>
-          <span className="min-w-0 truncate text-base font-semibold leading-tight sm:text-lg">
-            {profile.parishName}
           </span>
         </Link>
         <div className="flex shrink-0 items-center gap-1">

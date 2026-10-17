@@ -1,4 +1,4 @@
--- New uploads use the Virtus PlayCast bucket. The former bucket remains
+-- New uploads use the vPlayCast bucket. The former bucket remains
 -- untouched so existing public media URLs continue to resolve during migration.
 insert into
   storage.buckets (id, name, public)

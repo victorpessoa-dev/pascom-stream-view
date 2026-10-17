@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, Play } from "lucide-react";
 import { toast } from "sonner";
-import AppShell from "@/components/layout/app-shell";
 import PageContainer from "@/components/layout/page-container";
 import AdManager from "@/components/sponsors/ad-manager";
 import { Button } from "@/components/ui/button";
@@ -17,8 +16,8 @@ export default function PainelTelaoPage() {
   const { churchId, churchSlug, sponsorSettings, updateSponsorSettings } =
     useStore();
   const [defaultDurations, setDefaultDurations] = useState({
-    NORMAL: 10,
-    MASTER: 15,
+    IMAGE: 10,
+    VIDEO: 15,
   });
   const publicTelaoPath = churchSlug ? `/${churchSlug}/ads-telao` : "";
 
@@ -26,7 +25,7 @@ export default function PainelTelaoPage() {
     if (!churchId) return;
     getTelaoDefaultDurations(createSupabaseBrowserClient(), churchId)
       .then(setDefaultDurations)
-      .catch(() => setDefaultDurations({ NORMAL: 10, MASTER: 15 }));
+      .catch(() => setDefaultDurations({ IMAGE: 10, VIDEO: 15 }));
   }, [churchId]);
 
   const updateMasterFilter = async (checked) => {
@@ -43,8 +42,7 @@ export default function PainelTelaoPage() {
   };
 
   return (
-    <AppShell>
-      <PageContainer>
+    <PageContainer>
         <header className="mb-6 flex flex-col gap-4 border-b border-border/70 pb-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Patrocínios</h1>
@@ -78,7 +76,6 @@ export default function PainelTelaoPage() {
           defaultDurations={defaultDurations}
           churchSlug={churchSlug}
         />
-      </PageContainer>
-    </AppShell>
+    </PageContainer>
   );
 }

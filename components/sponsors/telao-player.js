@@ -13,11 +13,12 @@ import {
 import {
   buildAdsSignature,
   emptyTelaoSettings,
+  getMediaDuration,
   shuffleArray,
 } from "@/lib/services/telao-player";
 
-const ADS_CACHE_KEY = "v-playcast:telao:ads-cache";
-const LOG_QUEUE_KEY = "v-playcast:telao:log-queue";
+const ADS_CACHE_KEY = "vplaycast:telao:ads-cache";
+const LOG_QUEUE_KEY = "vplaycast:telao:log-queue";
 const ADS_REFRESH_INTERVAL_MS = 5_000;
 const LOG_FLUSH_INTERVAL_MS = 2 * 60 * 1000;
 export default function TelaoPlayer({
@@ -265,7 +266,10 @@ export default function TelaoPlayer({
     if (!loaded || ads.length === 0) return undefined;
 
     const currentAd = ads[currentIndex] || ads[0];
-    const duration = Math.max(3, Number(currentAd?.duration) || 10);
+    const duration = getMediaDuration(
+      currentAd,
+      sponsorSettings.mediaDurations,
+    );
     startTimeRef.current = Date.now();
 
     rotationTimerRef.current = window.setTimeout(() => {
@@ -276,7 +280,7 @@ export default function TelaoPlayer({
       if (rotationTimerRef.current)
         window.clearTimeout(rotationTimerRef.current);
     };
-  }, [ads, avancarAd, currentIndex, loaded]);
+  }, [ads, avancarAd, currentIndex, loaded, sponsorSettings.mediaDurations]);
 
   useEffect(() => {
     const adsRefreshTimer = window.setInterval(() => {
@@ -296,9 +300,11 @@ export default function TelaoPlayer({
   }, [carregarAnuncios, flushLogQueue]);
 
   useEffect(() => {
+    if (!churchId) return undefined;
+
     const supabase = createSupabaseBrowserClient();
     const channel = supabase
-      .channel(`telao-live-${kind.toLowerCase()}`)
+      .channel(`telao-live-${churchId}-${kind.toLowerCase()}`)
       .on(
         "postgres_changes",
         {
@@ -319,7 +325,9 @@ export default function TelaoPlayer({
         },
         scheduleFastRefresh,
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") scheduleFastRefresh();
+      });
 
     return () => {
       supabase.removeChannel(channel);
@@ -332,6 +340,10 @@ export default function TelaoPlayer({
   );
   // A single design keeps every sponsor in the same visual composition.
   const design = currentAd ? sponsorSettings?.designs?.SHARED : null;
+  const currentAdDuration = getMediaDuration(
+    currentAd,
+    sponsorSettings.mediaDurations,
+  );
   const emptyMessage = useMemo(() => {
     return {
       title: "Nenhum patrocinador ativo",
@@ -391,7 +403,7 @@ export default function TelaoPlayer({
                 ad={currentAd}
                 design={design}
                 onVideoEnded={avancarAd}
-                videoDurationLimit={currentAd.duration}
+                videoDurationLimit={currentAdDuration}
               />
             </div>
           </>
@@ -401,7 +413,7 @@ export default function TelaoPlayer({
               ad={currentAd}
               design={design}
               onVideoEnded={avancarAd}
-              videoDurationLimit={currentAd.duration}
+              videoDurationLimit={currentAdDuration}
             />
           </div>
         )}

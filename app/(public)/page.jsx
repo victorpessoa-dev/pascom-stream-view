@@ -36,7 +36,8 @@ export default function PublicHomePage() {
           {...reveal}
           className="mx-auto w-full max-w-7xl scroll-mt-16 px-6 py-20 sm:px-10 lg:px-12 lg:py-28"
         >
-          <div className="max-w-2xl">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-2xl">
             <p className="eyebrow text-primary">Comunidades ativas</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
               Encontre a sua igreja
@@ -45,16 +46,23 @@ export default function PublicHomePage() {
               Conheça as igrejas que optaram por disponibilizar sua página
               pública.
             </p>
+            </div>
+            {churches.length > 5 ? (
+              <Button asChild variant="outline" className="shrink-0">
+                <Link href="/comunidade">Ver todas as comunidades</Link>
+              </Button>
+            ) : null}
           </div>
           {churches.length ? (
-            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {churches.map((church) => (
+            <div className="mt-10 rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5">
+              <div className="grid auto-rows-[220px] gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                {churches.slice(0, 5).map((church) => (
                 <Link
                   key={church.id}
                   href={`/${church.slug}`}
-                  className="group overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:border-primary/60 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="group h-[220px] overflow-hidden rounded-xl border border-border bg-background transition hover:border-primary/60 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  <div className="relative h-32 bg-muted">
+                  <div className="relative h-20 bg-muted">
                     {church.cover_url ? (
                       <img
                         src={church.cover_url}
@@ -64,8 +72,8 @@ export default function PublicHomePage() {
                     ) : null}
                     <div className="absolute inset-0 bg-black/20" />
                   </div>
-                  <div className="relative p-5">
-                    <div className="absolute -top-9 flex h-16 w-16 items-center justify-center overflow-hidden rounded-xl border-4 border-card bg-card">
+                  <div className="relative p-4">
+                    <div className="absolute -top-6 flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border-4 border-background bg-card">
                       <img
                         src={
                           church.logo_url || "/brand/virtus-playcast-mark.png"
@@ -74,23 +82,24 @@ export default function PublicHomePage() {
                         className="h-full w-full object-cover"
                       />
                     </div>
-                    <h3 className="mt-5 truncate text-lg font-semibold group-hover:text-primary">
+                    <h3 className="mt-3 truncate text-base font-semibold group-hover:text-primary">
                       {church.name}
                     </h3>
                     {church.city ? (
-                      <p className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <MapPin className="h-4 w-4" />
+                      <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <MapPin className="h-3.5 w-3.5" />
                         {church.city}
                       </p>
                     ) : null}
                     {church.description ? (
-                      <p className="mt-3 line-clamp-2 text-sm leading-6 text-muted-foreground">
+                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
                         {church.description}
                       </p>
                     ) : null}
                   </div>
                 </Link>
-              ))}
+                ))}
+              </div>
             </div>
           ) : (
             <div className="mt-10 rounded-2xl border border-dashed border-border p-8 text-center text-muted-foreground">
@@ -158,7 +167,7 @@ export default function PublicHomePage() {
                 Tecnologia a serviço de uma boa apresentação.
               </h2>
               <p className="mt-5 max-w-xl leading-7 text-muted-foreground">
-                A Virtus PlayCast torna a rotina da comunicação mais simples,
+                A vPlayCast torna a rotina da comunicação mais simples,
                 para que a equipe prepare telões, anúncios e elementos visuais
                 com segurança.
               </p>

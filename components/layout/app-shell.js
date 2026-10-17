@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
+import { usePathname } from "next/navigation";
 import AppSidebar from "@/components/layout/app-sidebar";
 import AppFooter from "@/components/shared/app-footer";
 import { Button } from "@/components/ui/button";
 
 export default function AppShell({ children }) {
+  const pathname = usePathname();
   const [sidebarWidth, setSidebarWidth] = useState(64);
   const [isMobileAdmin, setIsMobileAdmin] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -33,14 +35,22 @@ export default function AppShell({ children }) {
 
     updateWidth();
     window.addEventListener("resize", updateWidth);
-    window.addEventListener("v_playcast_sidebar_resize", updateWidth);
+    window.addEventListener("vplaycast_sidebar_resize", updateWidth);
 
     return () => {
       resizeObserver?.disconnect();
       window.removeEventListener("resize", updateWidth);
-      window.removeEventListener("v_playcast_sidebar_resize", updateWidth);
+      window.removeEventListener("vplaycast_sidebar_resize", updateWidth);
     };
   }, []);
+
+  const isStandaloneAdminPage =
+    pathname === "/configurar-igreja" ||
+    pathname === "/painel-igreja" ||
+    pathname.startsWith("/editor/") ||
+    /^\/overlay\/[^/]+$/.test(pathname);
+
+  if (isStandaloneAdminPage) return children;
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-background">
@@ -58,14 +68,15 @@ export default function AppShell({ children }) {
           >
             <Menu className="h-5 w-5" />
           </Button>
+          <span className="font-brand truncate text-sm font-extrabold">
+            vPlayCast
+          </span>
           <img
             src="/brand/virtus-playcast-mark.png"
             alt=""
-            className="h-8 w-8 object-contain"
+            className="h-8 w-8 shrink-0 object-contain"
           />
-          <span className="truncate text-sm font-semibold">
-            Painel administrativo
-          </span>
+          <span className="truncate text-sm font-semibold">Painel administrativo</span>
         </header>
       ) : null}
       <main

@@ -70,17 +70,14 @@ import { uploadMedia } from "@/services/supabase/upload";
 import LoadingState from "@/components/shared/loading-state";
 import StaticMediaFrame from "@/components/shared/static-media-frame";
 import { resolveSnapPosition } from "@/lib/services/overlay-editor";
+import {
+  getOverlayAnimationClass,
+  getOverlayMediaType,
+  getOverlayOutputUrl,
+  OVERLAY_ANIMATION_OPTIONS,
+} from "@/lib/overlays/animations";
 
 const SAFE_AREA_RATIO = 0.05;
-
-// Keep classes explicit so Tailwind can generate them; dynamic class names are
-// not included in the production stylesheet.
-const ELEMENT_ANIMATION_CLASSES = {
-  "fade-in-up": "animate-in fade-in slide-in-from-bottom-2",
-  "fade-in": "animate-in fade-in",
-  "slide-in-from-left": "animate-in slide-in-from-left",
-  "pulse-slow": "animate-pulse",
-};
 
 const LITURGICAL_COLORS = {
   bordox: "#7f1d1d",
@@ -91,6 +88,14 @@ const LITURGICAL_COLORS = {
 
 function getLiturgicalColor(value) {
   return LITURGICAL_COLORS[value];
+}
+
+function AnimationOptions() {
+  return OVERLAY_ANIMATION_OPTIONS.map((animation) => (
+    <SelectItem key={animation.value} value={animation.value}>
+      {animation.label}
+    </SelectItem>
+  ));
 }
 
 function getSafeAreaBounds(overlay) {
@@ -210,6 +215,7 @@ export default function OverlayEditor({ overlayId }) {
       const newEl = await addElement(overlayId, {
         type: "image",
         src: newImageUrl,
+        mediaType: getOverlayMediaType({ src: newImageUrl }),
         x: newElementOptions.x,
         y: newElementOptions.y,
         width: Math.round(200 * (newElementOptions.zoom / 100)),
@@ -379,16 +385,15 @@ export default function OverlayEditor({ overlayId }) {
     ? `/${churchSlug}/shared/${overlay?.publicId || overlayId}`
     : "";
 
-  const copyOverlayUrl = async () => {
+  const copyOverlayUrl = async (background = "") => {
     if (!publicOverlayPath) {
       toast.error("Defina o slug da igreja antes de compartilhar o overlay");
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(
-        `${window.location.origin}${publicOverlayPath}`,
-      );
+      const outputPath = getOverlayOutputUrl(publicOverlayPath, background);
+      await navigator.clipboard.writeText(`${window.location.origin}${outputPath}`);
       toast.success("URL copiada para a área de transferência");
     } catch {
       toast.error("Não foi possível copiar a URL");
@@ -997,19 +1002,7 @@ export default function OverlayEditor({ overlayId }) {
                           <SelectValue placeholder="Nenhum" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">Nenhum</SelectItem>
-                          <SelectItem value="fade-in-up">
-                            Fade-in suave
-                          </SelectItem>
-                          <SelectItem value="fade-in">
-                            Fade-in gradual
-                          </SelectItem>
-                          <SelectItem value="slide-in-from-left">
-                            Slide da esquerda
-                          </SelectItem>
-                          <SelectItem value="pulse-slow">
-                            Pulso discreto
-                          </SelectItem>
+                          <AnimationOptions />
                         </SelectContent>
                       </Select>
                     </div>
@@ -1174,19 +1167,7 @@ export default function OverlayEditor({ overlayId }) {
                           <SelectValue placeholder="Nenhum" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">Nenhum</SelectItem>
-                          <SelectItem value="fade-in-up">
-                            Fade-in suave
-                          </SelectItem>
-                          <SelectItem value="fade-in">
-                            Fade-in gradual
-                          </SelectItem>
-                          <SelectItem value="slide-in-from-left">
-                            Slide da esquerda
-                          </SelectItem>
-                          <SelectItem value="pulse-slow">
-                            Pulso discreto
-                          </SelectItem>
+                          <AnimationOptions />
                         </SelectContent>
                       </Select>
                     </div>
@@ -1246,9 +1227,23 @@ export default function OverlayEditor({ overlayId }) {
 
           <Separator orientation="vertical" className="h-8" />
 
-          <Button variant="outline" size="sm" onClick={copyOverlayUrl}>
+          <Button
+            variant="outline"
+            size="sm"
+            title="Copiar URL com fundo transparente para Browser Source"
+            onClick={() => copyOverlayUrl()}
+          >
             <Copy className="w-4 h-4 mr-2" />
-            Copiar URL
+            URL transparente
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            title="Copiar URL com fundo verde para chroma key"
+            onClick={() => copyOverlayUrl("green")}
+          >
+            <CopyPlus className="w-4 h-4 mr-2" />
+            Chroma verde
           </Button>
           <Button variant="default" size="sm" asChild>
             <Link
@@ -1376,7 +1371,7 @@ export default function OverlayEditor({ overlayId }) {
                   selectedElementId === element.id
                     ? "ring-2 ring-primary shadow-lg shadow-primary/30"
                     : "hover:ring-2 hover:ring-primary/50"
-                } ${!element.visible ? "opacity-30" : ""} ${ELEMENT_ANIMATION_CLASSES[element.animationType] || ""}`}
+                } ${!element.visible ? "opacity-30" : ""} ${getOverlayAnimationClass(element.animationType)}`}
                 style={{
                   left: element.x * zoom,
                   top: element.y * zoom,
@@ -1892,6 +1887,28 @@ export default function OverlayEditor({ overlayId }) {
                         step={1}
                       />
                     </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">
+                      Animação na transmissão
+                    </Label>
+                    <Select
+                      value={selectedElement.animationType || "none"}
+                      onValueChange={(value) =>
+                        handleElementUpdate("animationType", value)
+                      }
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <AnimationOptions />
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs leading-5 text-muted-foreground">
+                      Reproduz ao exibir ou atualizar o elemento ao vivo.
+                    </p>
                   </div>
 
                   <Separator />

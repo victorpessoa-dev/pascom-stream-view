@@ -56,7 +56,7 @@ function createEmptyAd(defaultDurations) {
     name: "",
     type: "NORMAL",
     src: "",
-    duration: defaultDurations.NORMAL,
+    duration: defaultDurations.IMAGE,
     mediaType: "image",
     sourceType: "link",
     websiteUrl: "",
@@ -76,7 +76,7 @@ function formatDateTime(value) {
 }
 
 export default function AdManager({
-  defaultDurations = { NORMAL: 10, MASTER: 15 },
+  defaultDurations = { IMAGE: 10, VIDEO: 15 },
   churchSlug = "",
 }) {
   const {
@@ -200,10 +200,10 @@ export default function AdManager({
     updateSponsorSettings,
   ]);
 
-  const getTypeDuration = useCallback(
-    (type) =>
-      type === "MASTER" ? defaultDurations.MASTER : defaultDurations.NORMAL,
-    [defaultDurations.MASTER, defaultDurations.NORMAL],
+  const getMediaDuration = useCallback(
+    (mediaType) =>
+      mediaType === "video" ? defaultDurations.VIDEO : defaultDurations.IMAGE,
+    [defaultDurations.IMAGE, defaultDurations.VIDEO],
   );
 
   const readUpload = useCallback(async (file, setter) => {
@@ -234,12 +234,9 @@ export default function AdManager({
     (ad) => ({
       ...ad,
       mediaType: ad.mediaType === "video" ? "video" : "image",
-      duration: Math.min(
-        Math.max(3, Number(getTypeDuration(ad.type)) || 3),
-        Math.max(3, Number(ad.duration) || 10),
-      ),
+      duration: Math.max(3, Number(getMediaDuration(ad.mediaType)) || 3),
     }),
-    [getTypeDuration],
+    [getMediaDuration],
   );
 
   const updateMetricsEnabled = useCallback(
@@ -473,7 +470,6 @@ export default function AdManager({
           <SponsorForm
             ad={newAd}
             setAd={setNewAd}
-            getTypeDuration={getTypeDuration}
             onUpload={readUpload}
             onUploadStateChange={setUploadingMedia}
           />
@@ -553,7 +549,7 @@ export default function AdManager({
                         </div>
                         <TypeBadge ad={ad} />
                         <div className="text-xs text-muted-foreground">
-                          {formatDuration(ad.duration)} por rodada ·{" "}
+                          {formatDuration(getMediaDuration(ad.mediaType))} por rodada ·{" "}
                           {ad.views || 0} exibiies
                         </div>
                         {ad.websiteUrl ? (
@@ -650,7 +646,7 @@ export default function AdManager({
                           {ad.name}
                         </div>
                         <div className="mt-1 text-xs text-muted-foreground">
-                          {formatDuration(ad.duration)} por rodada ·{" "}
+                          {formatDuration(getMediaDuration(ad.mediaType))} por rodada ·{" "}
                           {ad.views || 0} exibiies
                         </div>
                       </div>
@@ -730,7 +726,6 @@ export default function AdManager({
             <SponsorForm
               ad={editingAd}
               setAd={setEditingAd}
-              getTypeDuration={getTypeDuration}
               onUpload={readUpload}
               onUploadStateChange={setUploadingMedia}
               allowMediaRemoval

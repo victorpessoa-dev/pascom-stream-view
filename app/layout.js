@@ -1,24 +1,32 @@
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
+import localFont from "next/font/local";
 import NetworkStatus from "@/components/shared/network-status";
 import PwaServiceWorker from "@/components/shared/pwa-service-worker";
+
+const poppins = localFont({
+  src: "../public/fonts/Poppins-ExtraBold.ttf",
+  weight: "800",
+  variable: "--font-vplaycast",
+  display: "swap",
+});
 
 export const metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000",
   ),
   title: {
-    default: "Virtus PlayCast",
-    template: "%s | Virtus PlayCast",
+    default: "vPlayCast",
+    template: "%s | vPlayCast",
   },
   description: "Transmissões, telões e patrocinadores em um só lugar.",
-  applicationName: "Virtus PlayCast",
+  applicationName: "vPlayCast",
   keywords: [
     "transmissão",
     "telão",
     "igreja",
     "patrocinadores",
-    "Virtus PlayCast",
+    "vPlayCast",
   ],
   icons: {
     icon: "/brand/virtus-playcast-mark.png",
@@ -27,25 +35,25 @@ export const metadata = {
   openGraph: {
     type: "website",
     locale: "pt_BR",
-    siteName: "Virtus PlayCast",
-    title: "Virtus PlayCast",
+    siteName: "vPlayCast",
+    title: "vPlayCast",
     description: "Transmissões, telões e patrocinadores em um só lugar.",
     images: [
-      { url: "/brand/virtus-playcast-color.png", alt: "Virtus PlayCast" },
+      { url: "/brand/virtus-playcast-mark.png", alt: "vPlayCast" },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Virtus PlayCast",
+    title: "vPlayCast",
     description: "Transmissões, telões e patrocinadores em um só lugar.",
-    images: ["/brand/virtus-playcast-color.png"],
+    images: ["/brand/virtus-playcast-mark.png"],
   },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className="min-h-screen bg-background font-sans antialiased">
+      <body className={`${poppins.variable} min-h-screen bg-background font-sans antialiased`}>
         {children}
         <NetworkStatus />
         <PwaServiceWorker />

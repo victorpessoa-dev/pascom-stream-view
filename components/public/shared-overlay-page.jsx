@@ -1,18 +1,26 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/services/supabase/browser";
+import {
+  getOverlayAnimationClass,
+  getOverlayBackground,
+  getOverlayElementKey,
+  getOverlayMediaType,
+} from "@/lib/overlays/animations";
 
 const OVERLAY_WIDTH = 1920;
 const OVERLAY_HEIGHT = 1080;
 const OVERLAY_REFRESH_INTERVAL_MS = 3_000;
 
 function renderElement(element) {
+  const mediaType = getOverlayMediaType(element);
+
   return (
     <div
-      key={element.id}
-      className="absolute bg-transparent"
+      key={getOverlayElementKey(element)}
+      className={`absolute bg-transparent ${getOverlayAnimationClass(element.animationType)}`}
       style={{
         left: element.x,
         top: element.y,
@@ -37,12 +45,23 @@ function renderElement(element) {
               (element.cropBottom || 0),
           }}
         >
-          {element.type === "image" && element.src ? (
+          {element.type === "image" && element.src && mediaType === "image" ? (
             <img
               src={element.src}
               alt=""
               className="h-full w-full object-contain bg-transparent"
               draggable={false}
+            />
+          ) : null}
+          {element.type === "image" && element.src && mediaType === "video" ? (
+            <video
+              src={element.src}
+              className="h-full w-full object-contain bg-transparent"
+              autoPlay
+              loop
+              muted
+              playsInline
+              disablePictureInPicture
             />
           ) : null}
           {element.type === "text" ? (
@@ -67,7 +86,9 @@ function renderElement(element) {
 
 export default function PublicOverlayPage({ churchId = "" }) {
   const params = useParams();
+  const searchParams = useSearchParams();
   const publicId = typeof params?.id === "string" ? params.id : "";
+  const outputBackground = getOverlayBackground(searchParams.get("bgcolor"));
 
   const [overlay, setOverlay] = useState(null);
   const [loaded, setLoaded] = useState(false);
@@ -118,8 +139,12 @@ export default function PublicOverlayPage({ churchId = "" }) {
 
     loadOverlay();
 
+    if (!churchId || !publicId) return () => {
+      cancelled = true;
+    };
+
     const channel = supabase
-      .channel(`shared-overlay-${publicId}`)
+      .channel(`shared-overlay-${churchId}-${publicId}`)
       .on(
         "postgres_changes",
         {
@@ -132,7 +157,9 @@ export default function PublicOverlayPage({ churchId = "" }) {
           loadOverlay();
         },
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") loadOverlay();
+      });
 
     // Realtime handles normal updates; the slower interval recovers from a
     // missed subscription without continuously polling the public API.
@@ -174,28 +201,38 @@ export default function PublicOverlayPage({ churchId = "" }) {
       className="fixed inset-0 overflow-hidden select-none pointer-events-none"
       style={{
         userSelect: "none",
-        background: "transparent",
+        background: outputBackground,
       }}
     >
       <div
         aria-hidden
-        className="absolute inset-x-0 top-0 bg-black transition-[height] duration-200 ease-out"
-        style={{ height: unusedHeight }}
+        className="absolute inset-x-0 top-0 transition-[height] duration-200 ease-out"
+        style={{ height: unusedHeight, background: outputBackground }}
       />
       <div
         aria-hidden
-        className="absolute inset-x-0 bottom-0 bg-black transition-[height] duration-200 ease-out"
-        style={{ height: unusedHeight }}
+        className="absolute inset-x-0 bottom-0 transition-[height] duration-200 ease-out"
+        style={{ height: unusedHeight, background: outputBackground }}
       />
       <div
         aria-hidden
-        className="absolute left-0 bg-black transition-[top,bottom,width] duration-200 ease-out"
-        style={{ top: unusedHeight, bottom: unusedHeight, width: unusedWidth }}
+        className="absolute left-0 transition-[top,bottom,width] duration-200 ease-out"
+        style={{
+          top: unusedHeight,
+          bottom: unusedHeight,
+          width: unusedWidth,
+          background: outputBackground,
+        }}
       />
       <div
         aria-hidden
-        className="absolute right-0 bg-black transition-[top,bottom,width] duration-200 ease-out"
-        style={{ top: unusedHeight, bottom: unusedHeight, width: unusedWidth }}
+        className="absolute right-0 transition-[top,bottom,width] duration-200 ease-out"
+        style={{
+          top: unusedHeight,
+          bottom: unusedHeight,
+          width: unusedWidth,
+          background: outputBackground,
+        }}
       />
       <div className="absolute left-1/2 top-1/2 flex aspect-video w-[min(100vw,177.777vh)] -translate-x-1/2 -translate-y-1/2 items-center justify-center overflow-hidden bg-transparent transition-[width] duration-200 ease-out">
         <div
@@ -204,7 +241,7 @@ export default function PublicOverlayPage({ churchId = "" }) {
             width: OVERLAY_WIDTH,
             height: OVERLAY_HEIGHT,
             transform: `scale(${fitScale})`,
-            background: "transparent",
+            background: outputBackground,
           }}
         >
           {elements.map(renderElement)}

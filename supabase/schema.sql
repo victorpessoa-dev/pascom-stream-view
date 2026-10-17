@@ -1,4 +1,4 @@
--- Virtus PlayCast - consolidated schema for a new Supabase project.
+-- vPlayCast - consolidated schema for a new Supabase project.
 -- Model: one administrator per church; all application content belongs to a
 -- church and DELETE is permanent (no soft-delete/audit actor columns).
 create extension if not exists pgcrypto;
@@ -376,7 +376,31 @@ $$;
 create or replace function public.get_sponsor_settings (church_id_arg uuid) returns jsonb language sql stable security definer
 set
   search_path = public as $$
-  select coalesce((select value from public.app_settings where church_id=church_id_arg and key='sponsor_settings' and public.is_public_church(church_id)), '{}'::jsonb)
+  select coalesce(
+    (select value from public.app_settings
+      where church_id = church_id_arg
+        and key = 'sponsor_settings'
+        and public.is_public_church(church_id)),
+    '{}'::jsonb
+  ) || jsonb_build_object(
+    'mediaDurations',
+    jsonb_build_object(
+      'image', greatest(3, coalesce(
+        nullif((select value #>> '{telao,defaultDurationImage}' from public.app_settings
+          where church_id = church_id_arg and key = 'admin_settings'), '')::integer,
+        nullif((select value #>> '{telao,defaultDurationNormal}' from public.app_settings
+          where church_id = church_id_arg and key = 'admin_settings'), '')::integer,
+        10
+      )),
+      'video', greatest(3, coalesce(
+        nullif((select value #>> '{telao,defaultDurationVideo}' from public.app_settings
+          where church_id = church_id_arg and key = 'admin_settings'), '')::integer,
+        nullif((select value #>> '{telao,defaultDurationMaster}' from public.app_settings
+          where church_id = church_id_arg and key = 'admin_settings'), '')::integer,
+        15
+      ))
+    )
+  )
 $$;
 
 create or replace function public.get_public_overlay (public_id_arg text, church_id_arg uuid) returns table (
